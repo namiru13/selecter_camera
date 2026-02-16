@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:camera/camera.dart';
 import '../../viewmodels/camera_viewmodel.dart';
+import 'widgets/arc_zoom_gauge.dart';
 
 class CameraScreen extends ConsumerStatefulWidget {
   const CameraScreen({super.key});
@@ -11,6 +13,11 @@ class CameraScreen extends ConsumerStatefulWidget {
 }
 
 class _CameraScreenState extends ConsumerState<CameraScreen> {
+  DateTime? _snapPauseTime;
+  double? _lastSnapValue;
+  final List<double> _snapPoints = [2.0, 3.0, 6.0, 10.0];
+  final double _snapThreshold = 0.2;
+
   @override
   void initState() {
     super.initState();
@@ -35,13 +42,58 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               cameraState.status == CameraStatus.recording)
             GestureDetector(
               onHorizontalDragUpdate: (details) {
-                final sensitivity = 0.01;
-                final newZoom =
-                    cameraState.currentZoomLevel +
-                    (details.delta.dx * sensitivity);
-                ref
-                    .read(cameraViewModelProvider.notifier)
-                    .setZoomLevel(newZoom);
+                final screenWidth = MediaQuery.of(context).size.width;
+                // Padding left: 32, right: 32 -> total 64 subtraction
+                final barWidth = screenWidth - 64.0;
+                final zoomRange =
+                    cameraState.maxZoomLevel - cameraState.minZoomLevel;
+
+                if (barWidth > 0 && zoomRange > 0) {
+                  // Calculate raw new zoom level based on drag
+                  double newZoom =
+                      cameraState.currentZoomLevel -
+                      (details.delta.dx / barWidth) * zoomRange;
+
+                  // Snap Logic
+
+                  // Check if we are currently paused
+                  if (_snapPauseTime != null &&
+                      DateTime.now().isBefore(_snapPauseTime!)) {
+                    return; // Pause updates
+                  }
+
+                  // Check for snap points
+                  for (final point in _snapPoints) {
+                    if ((newZoom - point).abs() < _snapThreshold) {
+                      // Found a snap point candidate
+                      if (_lastSnapValue != point) {
+                        // Start snapping
+                        HapticFeedback.lightImpact();
+                        _snapPauseTime = DateTime.now().add(
+                          const Duration(milliseconds: 100),
+                        );
+                        _lastSnapValue = point;
+                        ref
+                            .read(cameraViewModelProvider.notifier)
+                            .setZoomLevel(point);
+                        return; // Stop update for this frame
+                      }
+                    }
+                  }
+
+                  // Reset last snap value if we are far enough from all points
+                  bool closeToAnyPoint = _snapPoints.any(
+                    (p) => (newZoom - p).abs() < _snapThreshold,
+                  );
+                  if (!closeToAnyPoint) {
+                    _lastSnapValue = null;
+                  }
+
+                  // Apply zoom if not paused
+                  ref
+                      .read(cameraViewModelProvider.notifier)
+                      .setZoomLevel(newZoom);
+                }
               },
               child: SizedBox.expand(
                 child: CameraPreview(cameraState.controller!),
@@ -50,65 +102,18 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           else
             const Center(child: CircularProgressIndicator()),
 
-          // Zoom Indicator (Horizontal Bar above Recording Button)
+          // Zoom Indicator (Arc Dial)
           if (cameraState.status == CameraStatus.ready ||
               cameraState.status == CameraStatus.recording)
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(
-                  bottom: 120.0,
-                  left: 32,
-                  right: 32,
-                ),
-                child: Container(
-                  height: 30,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Stack(
-                    children: [
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final range =
-                              cameraState.maxZoomLevel -
-                              cameraState.minZoomLevel;
-                          if (range <= 0) return const SizedBox();
-
-                          final percent =
-                              (cameraState.currentZoomLevel -
-                                  cameraState.minZoomLevel) /
-                              range;
-
-                          return Container(
-                            width: constraints.maxWidth * percent,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                          );
-                        },
-                      ),
-                      Center(
-                        child: Text(
-                          "${cameraState.currentZoomLevel.toStringAsFixed(1)}x",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(
-                                offset: Offset(1, 1),
-                                blurRadius: 2,
-                                color: Colors.black,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                padding: const EdgeInsets.only(bottom: 110.0),
+                child: ArcZoomGauge(
+                  currentZoom: cameraState.currentZoomLevel,
+                  minZoom: cameraState.minZoomLevel,
+                  maxZoom: cameraState.maxZoomLevel,
+                  snapPoints: _snapPoints,
                 ),
               ),
             ),
@@ -117,25 +122,36 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 32.0),
-              child: FloatingActionButton.large(
-                backgroundColor: cameraState.status == CameraStatus.recording
-                    ? Colors.red
-                    : Colors.white,
-                onPressed: () {
-                  if (cameraState.status == CameraStatus.recording) {
-                    ref.read(cameraViewModelProvider.notifier).stopRecording();
-                  } else {
-                    ref.read(cameraViewModelProvider.notifier).startRecording();
-                  }
-                },
-                child: Icon(
-                  cameraState.status == CameraStatus.recording
-                      ? Icons.stop
-                      : Icons.fiber_manual_record,
-                  color: cameraState.status == CameraStatus.recording
-                      ? Colors.white
-                      : Colors.red,
+              padding: const EdgeInsets.only(bottom: 10.0),
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: FittedBox(
+                  child: FloatingActionButton.large(
+                    backgroundColor:
+                        cameraState.status == CameraStatus.recording
+                        ? Colors.red
+                        : Colors.white,
+                    onPressed: () {
+                      if (cameraState.status == CameraStatus.recording) {
+                        ref
+                            .read(cameraViewModelProvider.notifier)
+                            .stopRecording();
+                      } else {
+                        ref
+                            .read(cameraViewModelProvider.notifier)
+                            .startRecording();
+                      }
+                    },
+                    child: Icon(
+                      cameraState.status == CameraStatus.recording
+                          ? Icons.stop
+                          : Icons.fiber_manual_record,
+                      color: cameraState.status == CameraStatus.recording
+                          ? Colors.white
+                          : Colors.red,
+                    ),
+                  ),
                 ),
               ),
             ),
