@@ -154,7 +154,7 @@ class _ArcDialPainter extends CustomPainter {
       visibleAngleRad,
       false,
       Paint()
-        ..color = Colors.white.withOpacity(0.2)
+        ..color = Colors.white.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 20.0
         ..strokeCap = StrokeCap.round,
@@ -194,7 +194,7 @@ class _ArcDialPainter extends CustomPainter {
       final color = isSnap ? Colors.yellow : Colors.white;
 
       paintTick
-        ..color = color.withOpacity(opacity)
+        ..color = color.withValues(alpha: opacity)
         ..strokeWidth = tickWidth;
 
       final p1 = Offset(
@@ -217,7 +217,7 @@ class _ArcDialPainter extends CustomPainter {
         final textSpan = TextSpan(
           text: "${zoomVal.toInt()}x",
           style: TextStyle(
-            color: Colors.white.withOpacity(opacity),
+            color: Colors.white.withValues(alpha: opacity),
             fontSize: 12,
             fontWeight: FontWeight.bold,
             shadows: const [Shadow(blurRadius: 2, color: Colors.black)],

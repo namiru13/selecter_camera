@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 
@@ -14,7 +15,7 @@ class FFmpegService {
     if (ReturnCode.isSuccess(await session.getReturnCode())) {
       return outputVideoPath;
     } else {
-      print('FFmpeg error: ${await session.getAllLogsAsString()}');
+      debugPrint('FFmpeg error: ${await session.getAllLogsAsString()}');
       return null;
     }
   }
@@ -33,7 +34,7 @@ class FFmpegService {
     if (ReturnCode.isSuccess(await session.getReturnCode())) {
       return outputPath;
     } else {
-      print('FFmpeg concat error: ${await session.getAllLogsAsString()}');
+      debugPrint('FFmpeg concat error: ${await session.getAllLogsAsString()}');
       return null;
     }
   }

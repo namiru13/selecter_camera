@@ -1,0 +1,8 @@
+﻿Analyzing selecter_camera...                                    
+
+   info - Don't invoke 'print' in production code - lib\services\ffmpeg_service.dart:17:7 - avoid_print
+   info - Don't invoke 'print' in production code - lib\services\ffmpeg_service.dart:36:7 - avoid_print
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\camera\widgets\arc_zoom_gauge.dart:157:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\camera\widgets\arc_zoom_gauge.dart:197:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\camera\widgets\arc_zoom_gauge.dart:220:33 - deprecated_member_use
+
