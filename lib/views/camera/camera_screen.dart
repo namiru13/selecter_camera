@@ -33,9 +33,69 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           // Camera Preview
           if (cameraState.status == CameraStatus.ready ||
               cameraState.status == CameraStatus.recording)
-            SizedBox.expand(child: CameraPreview(cameraState.controller!))
+            GestureDetector(
+              onVerticalDragUpdate: (details) {
+                final sensitivity = 0.05;
+                final newZoom =
+                    cameraState.currentZoomLevel -
+                    (details.delta.dy * sensitivity);
+                ref
+                    .read(cameraViewModelProvider.notifier)
+                    .setZoomLevel(newZoom);
+              },
+              child: SizedBox.expand(
+                child: CameraPreview(cameraState.controller!),
+              ),
+            )
           else
             const Center(child: CircularProgressIndicator()),
+
+          // Zoom Indicator
+          if (cameraState.status == CameraStatus.ready ||
+              cameraState.status == CameraStatus.recording)
+            Positioned(
+              right: 16,
+              top: 100,
+              bottom: 100,
+              child: Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final range =
+                        cameraState.maxZoomLevel - cameraState.minZoomLevel;
+                    if (range <= 0) return const SizedBox();
+
+                    final percent =
+                        (cameraState.currentZoomLevel -
+                            cameraState.minZoomLevel) /
+                        range;
+
+                    // Invert height calculation because 1.0 (max zoom) should be at the top?
+                    // Actually, let's map typically: top = max, bottom = min?
+                    // "Scrollbar" usually means top is start (0%).
+                    // But for zoom, sliding UP zooms IN.
+                    // Let's make the indicator fill from bottom to top.
+                    final height = constraints.maxHeight * percent;
+
+                    return Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Container(
+                        height: height,
+                        width: 6,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
 
           // Recording Button
           Align(

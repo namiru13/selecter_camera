@@ -1,0 +1,53 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 85.0.0 (94.0.0 available)
+  analyzer 7.7.1 (10.0.2 available)
+  camera 0.11.2+1 (0.11.3 available)
+  camera_android_camerax 0.6.23+1 (0.6.30 available)
+  camera_avfoundation 0.9.21+2 (0.9.23+2 available)
+  characters 1.4.0 (1.4.1 available)
+  ffmpeg_kit_flutter_https_gpl 6.0.3 (discontinued)
+  file_selector_macos 0.9.4+4 (0.9.5 available)
+  flutter_plugin_android_lifecycle 2.0.31 (2.0.33 available)
+  http 0.13.6 (1.6.0 available)
+  image_picker_android 0.8.13+1 (0.8.13+13 available)
+  image_picker_ios 0.8.13 (0.8.13+6 available)
+  image_picker_macos 0.2.2 (0.2.2+1 available)
+  matcher 0.12.17 (0.12.18 available)
+  material_color_utilities 0.11.1 (0.13.0 available)
+  meta 1.17.0 (1.18.1 available)
+  path_provider_android 2.2.19 (2.2.22 available)
+  path_provider_foundation 2.4.2 (2.6.0 available)
+  source_span 1.10.1 (1.10.2 available)
+  test 1.26.3 (1.29.0 available)
+  test_api 0.7.7 (0.7.9 available)
+  test_core 0.6.12 (0.6.15 available)
+  vm_service 15.0.0 (15.0.2 available)
+Got dependencies!
+1 package is discontinued.
+22 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Running Gradle task 'assembleDebug'...                          
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:checkDebugAarMetadata'.
+> Could not resolve all files for configuration ':app:debugRuntimeClasspath'.
+   > Could not find com.arthenica:ffmpeg-kit-https-gpl:6.0-2.
+     Searched in the following locations:
+       - https://dl.google.com/dl/android/maven2/com/arthenica/ffmpeg-kit-https-gpl/6.0-2/ffmpeg-kit-https-gpl-6.0-2.pom
+       - https://repo.maven.apache.org/maven2/com/arthenica/ffmpeg-kit-https-gpl/6.0-2/ffmpeg-kit-https-gpl-6.0-2.pom
+       - https://storage.googleapis.com/download.flutter.io/com/arthenica/ffmpeg-kit-https-gpl/6.0-2/ffmpeg-kit-https-gpl-6.0-2.pom
+     Required by:
+         project :app > project :ffmpeg_kit_flutter_https_gpl
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 20s
+Running Gradle task 'assembleDebug'...                             20.8s
+Gradle task assembleDebug failed with exit code 1
