@@ -34,11 +34,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           if (cameraState.status == CameraStatus.ready ||
               cameraState.status == CameraStatus.recording)
             GestureDetector(
-              onVerticalDragUpdate: (details) {
-                final sensitivity = 0.05;
+              onHorizontalDragUpdate: (details) {
+                final sensitivity = 0.01;
                 final newZoom =
-                    cameraState.currentZoomLevel -
-                    (details.delta.dy * sensitivity);
+                    cameraState.currentZoomLevel +
+                    (details.delta.dx * sensitivity);
                 ref
                     .read(cameraViewModelProvider.notifier)
                     .setZoomLevel(newZoom);
@@ -50,49 +50,65 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
           else
             const Center(child: CircularProgressIndicator()),
 
-          // Zoom Indicator
+          // Zoom Indicator (Horizontal Bar above Recording Button)
           if (cameraState.status == CameraStatus.ready ||
               cameraState.status == CameraStatus.recording)
-            Positioned(
-              right: 16,
-              top: 100,
-              bottom: 100,
-              child: Container(
-                width: 6,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(3),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  bottom: 120.0,
+                  left: 32,
+                  right: 32,
                 ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final range =
-                        cameraState.maxZoomLevel - cameraState.minZoomLevel;
-                    if (range <= 0) return const SizedBox();
+                child: Container(
+                  height: 30,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Stack(
+                    children: [
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final range =
+                              cameraState.maxZoomLevel -
+                              cameraState.minZoomLevel;
+                          if (range <= 0) return const SizedBox();
 
-                    final percent =
-                        (cameraState.currentZoomLevel -
-                            cameraState.minZoomLevel) /
-                        range;
+                          final percent =
+                              (cameraState.currentZoomLevel -
+                                  cameraState.minZoomLevel) /
+                              range;
 
-                    // Invert height calculation because 1.0 (max zoom) should be at the top?
-                    // Actually, let's map typically: top = max, bottom = min?
-                    // "Scrollbar" usually means top is start (0%).
-                    // But for zoom, sliding UP zooms IN.
-                    // Let's make the indicator fill from bottom to top.
-                    final height = constraints.maxHeight * percent;
-
-                    return Align(
-                      alignment: Alignment.bottomCenter,
-                      child: Container(
-                        height: height,
-                        width: 6,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(3),
+                          return Container(
+                            width: constraints.maxWidth * percent,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.8),
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          );
+                        },
+                      ),
+                      Center(
+                        child: Text(
+                          "${cameraState.currentZoomLevel.toStringAsFixed(1)}x",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                offset: Offset(1, 1),
+                                blurRadius: 2,
+                                color: Colors.black,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 ),
               ),
             ),
