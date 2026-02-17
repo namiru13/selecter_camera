@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 
 class ArcZoomGauge extends StatelessWidget {
   final double currentZoom;
@@ -18,7 +19,7 @@ class ArcZoomGauge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 80,
+      height: AppConstants.gaugeHeight,
       width: double.infinity,
       child: Stack(
         alignment: Alignment.bottomCenter,
@@ -38,7 +39,7 @@ class ArcZoomGauge extends StatelessWidget {
               "${currentZoom.toStringAsFixed(1)}x",
               style: const TextStyle(
                 color: Colors.yellow,
-                fontSize: 24,
+                fontSize: AppConstants.gaugeZoomFontSize,
                 fontWeight: FontWeight.bold,
                 shadows: [
                   Shadow(
@@ -83,7 +84,7 @@ class _ArcDialPainter extends CustomPainter {
     // ColorOS usually acts like a wheel.
     // Let's say the visible arc is from -40 to +40 degrees.
     // Let's say the visible arc is from -50 to +50 degrees to show more.
-    const visibleAngleDeg = 100.0;
+    const visibleAngleDeg = AppConstants.gaugeVisibleAngleDeg;
     const visibleAngleRad = visibleAngleDeg * (math.pi / 180.0);
 
     final paintTick = Paint()
@@ -135,7 +136,7 @@ class _ArcDialPainter extends CustomPainter {
     // This gives the "infinite wheel" feel.
 
     // Wider spacing for better visibility
-    final anglePerUnit = 22.0 * (math.pi / 180.0);
+    final anglePerUnit = AppConstants.gaugeAnglePerUnitDeg * (math.pi / 180.0);
 
     // Filter which ticks to draw to avoid drawing everything
     // Visible range is -PI/2 +/- visibleAngleRad/2
@@ -156,7 +157,7 @@ class _ArcDialPainter extends CustomPainter {
       Paint()
         ..color = Colors.white.withValues(alpha: 0.2)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 20.0
+        ..strokeWidth = AppConstants.gaugeArcStrokeWidth
         ..strokeCap = StrokeCap.round,
       // Apply a mask or gradient fading at ends?
       // Simple arc for now.
@@ -218,7 +219,7 @@ class _ArcDialPainter extends CustomPainter {
           text: "${zoomVal.toInt()}x",
           style: TextStyle(
             color: Colors.white.withValues(alpha: opacity),
-            fontSize: 12,
+            fontSize: AppConstants.gaugeTickLabelFontSize,
             fontWeight: FontWeight.bold,
             shadows: const [Shadow(blurRadius: 2, color: Colors.black)],
           ),
