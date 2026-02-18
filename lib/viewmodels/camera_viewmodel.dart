@@ -9,47 +9,24 @@ import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/camera_state.dart';
 import '../services/camera_service.dart';
-import '../services/orientation_service.dart';
 import '../services/video_save_service.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 
 /// カメラのViewModel（Riverpod Notifier）
 class CameraViewModel extends Notifier<CameraState> {
   late final CameraService _cameraService;
-  late final OrientationService _orientationService;
+
   final VideoSaveService _videoSaveService = VideoSaveService();
 
   @override
   CameraState build() {
     _cameraService = ref.read(cameraServiceProvider);
-    _orientationService = OrientationService();
-
-    // デバイスの向き変更を監視
-    _orientationService.startListening((orientation) {
-      if (state.sensorOrientation != orientation) {
-        state = state.copyWith(sensorOrientation: orientation);
-        _updateCameraOrientation(orientation);
-      }
-    });
 
     // 破棄時のクリーンアップを登録
     ref.onDispose(() {
-      _orientationService.stopListening();
       stopInferenceLoop();
     });
 
     return CameraState();
-  }
-
-  /// カメラの向きを更新する
-  Future<void> _updateCameraOrientation(
-    NativeDeviceOrientation orientation,
-  ) async {
-    if (state.controller == null) return;
-    await OrientationService.lockCaptureOrientation(
-      state.controller!,
-      orientation,
-    );
   }
 
   /// カメラを初期化する
@@ -65,8 +42,11 @@ class CameraViewModel extends Notifier<CameraState> {
           controller: _cameraService.controller,
           minZoomLevel: minZoom,
           maxZoomLevel: maxZoom,
-          currentZoomLevel: minZoom,
+          currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
         );
+
+        // 初期ズームを実機に反映
+        await _cameraService.controller!.setZoomLevel(state.currentZoomLevel);
       }
     } catch (e) {
       state = state.copyWith(
@@ -124,7 +104,7 @@ class CameraViewModel extends Notifier<CameraState> {
       if (result.success) {
         state = state.copyWith(
           status: CameraStatus.ready,
-          lastVideoPath: file.path,
+          lastVideoPath: result.savedPath,
         );
       } else {
         state = state.copyWith(
@@ -164,10 +144,10 @@ class CameraViewModel extends Notifier<CameraState> {
     });
   }
 
-  /// 推論ループを停止する
   Future<void> stopInferenceLoop() async {
-    if (state.controller != null && state.controller!.value.isStreamingImages) {
-      await state.controller!.stopImageStream();
+    final controller = _cameraService.controller;
+    if (controller != null && controller.value.isStreamingImages) {
+      await controller.stopImageStream();
     }
   }
 

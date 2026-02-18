@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../review/video_list_screen.dart';
 import '../../review/video_preview_screen.dart';
 
 class VideoPreviewButton extends StatefulWidget {
@@ -74,6 +75,7 @@ class _VideoPreviewButtonState extends State<VideoPreviewButton> {
     return GestureDetector(
       onTap: () {
         if (widget.videoPath != null) {
+          // 直前に撮影した動画がある場合 → その動画のビューワーへ遷移
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) =>
@@ -81,10 +83,10 @@ class _VideoPreviewButtonState extends State<VideoPreviewButton> {
             ),
           );
         } else {
-          // Optional: Show a message or handle empty state tap
-          // ScaffoldMessenger.of(context).showSnackBar(
-          //   const SnackBar(content: Text('No video recorded yet')),
-          // );
+          // 直前に撮影した動画がない場合 → 動画一覧画面へ遷移
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (context) => const VideoListScreen()),
+          );
         }
       },
       child: Container(

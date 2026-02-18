@@ -7,6 +7,7 @@ class ArcZoomGauge extends StatelessWidget {
   final double minZoom;
   final double maxZoom;
   final List<double> snapPoints;
+  final double rotationTurns;
 
   const ArcZoomGauge({
     super.key,
@@ -14,6 +15,7 @@ class ArcZoomGauge extends StatelessWidget {
     required this.minZoom,
     required this.maxZoom,
     this.snapPoints = const [],
+    this.rotationTurns = 0.0,
   });
 
   @override
@@ -30,24 +32,30 @@ class ArcZoomGauge extends StatelessWidget {
               minZoom: minZoom,
               maxZoom: maxZoom,
               snapPoints: snapPoints,
+              rotationTurns: rotationTurns,
             ),
             size: Size.infinite,
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 20.0),
-            child: Text(
-              "${currentZoom.toStringAsFixed(1)}x",
-              style: const TextStyle(
-                color: Colors.yellow,
-                fontSize: AppConstants.gaugeZoomFontSize,
-                fontWeight: FontWeight.bold,
-                shadows: [
-                  Shadow(
-                    offset: Offset(1, 1),
-                    blurRadius: 4,
-                    color: Colors.black,
-                  ),
-                ],
+            child: AnimatedRotation(
+              turns: rotationTurns,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: Text(
+                "${currentZoom.toStringAsFixed(1)}x",
+                style: const TextStyle(
+                  color: Colors.yellow,
+                  fontSize: AppConstants.gaugeZoomFontSize,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(1, 1),
+                      blurRadius: 4,
+                      color: Colors.black,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -62,12 +70,14 @@ class _ArcDialPainter extends CustomPainter {
   final double minZoom;
   final double maxZoom;
   final List<double> snapPoints;
+  final double rotationTurns;
 
   _ArcDialPainter({
     required this.currentZoom,
     required this.minZoom,
     required this.maxZoom,
     required this.snapPoints,
+    required this.rotationTurns,
   });
 
   @override
@@ -236,7 +246,19 @@ class _ArcDialPainter extends CustomPainter {
 
         // Rotate text? Or keep upright?
         // Upright is easier to read.
+
+        canvas.save();
+        // Translate to text center
+        final textCenter =
+            tp + Offset(textPainter.width / 2, textPainter.height / 2);
+        canvas.translate(textCenter.dx, textCenter.dy);
+        // Rotate
+        canvas.rotate(rotationTurns * 2 * math.pi);
+        // Translate back
+        canvas.translate(-textCenter.dx, -textCenter.dy);
+
         textPainter.paint(canvas, tp);
+        canvas.restore();
       }
     }
 

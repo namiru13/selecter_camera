@@ -4,7 +4,6 @@
 library;
 
 import 'package:camera/camera.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 
 /// カメラのステータスを表すEnum
 enum CameraStatus { uninitialized, ready, recording, processing, error }
@@ -18,7 +17,6 @@ class CameraState {
   final double minZoomLevel;
   final double maxZoomLevel;
   final double currentZoomLevel;
-  final NativeDeviceOrientation sensorOrientation;
 
   CameraState({
     this.status = CameraStatus.uninitialized,
@@ -28,7 +26,6 @@ class CameraState {
     this.minZoomLevel = 1.0,
     this.maxZoomLevel = 1.0,
     this.currentZoomLevel = 1.0,
-    this.sensorOrientation = NativeDeviceOrientation.portraitUp,
   });
 
   CameraState copyWith({
@@ -39,7 +36,6 @@ class CameraState {
     double? minZoomLevel,
     double? maxZoomLevel,
     double? currentZoomLevel,
-    NativeDeviceOrientation? sensorOrientation,
   }) {
     return CameraState(
       status: status ?? this.status,
@@ -49,7 +45,6 @@ class CameraState {
       minZoomLevel: minZoomLevel ?? this.minZoomLevel,
       maxZoomLevel: maxZoomLevel ?? this.maxZoomLevel,
       currentZoomLevel: currentZoomLevel ?? this.currentZoomLevel,
-      sensorOrientation: sensorOrientation ?? this.sensorOrientation,
     );
   }
 }

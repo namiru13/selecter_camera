@@ -1,0 +1,98 @@
+﻿00:00 +0: loading C:/Users/user/source/selecter_camera/test/viewmodels/camera_viewmodel_test.dart
+00:00 +0: CameraViewModel initializeCamera sets default zoom to 1.0
+00:00 +0 -1: CameraViewModel initializeCamera sets default zoom to 1.0 [E]
+  'package:riverpod/src/core/ref.dart': Failed assertion: line 232 pos 7: '_debugCallbackStack == 0': Cannot use Ref or modify other providers inside life-cycles/selectors.
+  dart:core                                                       _AssertionError._throwNew
+  package:riverpod/src/core/ref.dart 232:7                        Ref._throwIfInvalidUsage
+  package:riverpod/src/core/provider/notifier_provider.dart 82:9  AnyNotifier.state
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 149:9  CameraViewModel.stopInferenceLoop
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                      Future._asyncCompleteError
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  
+00:00 +0 -1: CameraViewModel initializeCamera clamps default zoom to minZoom if min > 1.0
+00:00 +0 -2: CameraViewModel initializeCamera clamps default zoom to minZoom if min > 1.0 [E]
+  'package:riverpod/src/core/ref.dart': Failed assertion: line 232 pos 7: '_debugCallbackStack == 0': Cannot use Ref or modify other providers inside life-cycles/selectors.
+  dart:core                                                       _AssertionError._throwNew
+  package:riverpod/src/core/ref.dart 232:7                        Ref._throwIfInvalidUsage
+  package:riverpod/src/core/provider/notifier_provider.dart 82:9  AnyNotifier.state
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 149:9  CameraViewModel.stopInferenceLoop
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                      Future._asyncCompleteError
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  
+00:00 +0 -2: CameraViewModel initializeCamera clamps default zoom to maxZoom if max < 1.0
+00:00 +0 -3: CameraViewModel initializeCamera clamps default zoom to maxZoom if max < 1.0 [E]
+  'package:riverpod/src/core/ref.dart': Failed assertion: line 232 pos 7: '_debugCallbackStack == 0': Cannot use Ref or modify other providers inside life-cycles/selectors.
+  dart:core                                                       _AssertionError._throwNew
+  package:riverpod/src/core/ref.dart 232:7                        Ref._throwIfInvalidUsage
+  package:riverpod/src/core/provider/notifier_provider.dart 82:9  AnyNotifier.state
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 149:9  CameraViewModel.stopInferenceLoop
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  ===== asynchronous gap ===========================
+  dart:async                                                      Future._asyncCompleteError
+  package:selecter_camera/viewmodels/camera_viewmodel.dart 26:7   CameraViewModel.build.<fn>
+  package:riverpod/src/core/provider_container.dart 661:9         InternalProviderContainer.runGuarded
+  package:riverpod/src/core/ref.dart 719:17                       _runCallbacks
+  package:riverpod/src/core/element.dart 1177:5                   ProviderElement.runOnDispose
+  package:riverpod/src/core/element.dart 308:11                   ElementWithFuture.runOnDispose
+  package:riverpod/src/core/element.dart 1211:5                   ProviderElement.clearState
+  package:riverpod/src/core/element.dart 1242:5                   ProviderElement.dispose
+  package:riverpod/src/core/element.dart 332:11                   ElementWithFuture.dispose
+  package:riverpod/src/core/provider_container.dart 1136:15       ProviderContainer._dispose
+  package:riverpod/src/core/provider_container.dart 1150:21       ProviderContainer.dispose
+  test\viewmodels\camera_viewmodel_test.dart 64:15                main.<fn>
+  
+00:00 +0 -3: Some tests failed.

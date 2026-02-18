@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
@@ -12,25 +13,36 @@ class VideoPreviewScreen extends StatefulWidget {
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  late VideoPlayerController _controller;
+  late VideoEditorController _controller;
   bool _isInitialized = false;
   bool _isPlaying = false;
 
   bool _isDragging = false;
   double _dragValue = 0.0;
+  bool _wasPlayingBeforeDrag = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.file(widget.videoFile)
-      ..initialize().then((_) {
-        setState(() {
-          _isInitialized = true;
-          _isPlaying = true;
+    _controller = VideoEditorController.file(
+      widget.videoFile,
+      minDuration: const Duration(seconds: 1),
+      maxDuration: const Duration(seconds: 3600), // Allow long videos
+    );
+
+    _controller
+        .initialize()
+        .then((_) {
+          setState(() {
+            _isInitialized = true;
+            _isPlaying = true;
+          });
+          _controller.video.play();
+          _controller.video.setLooping(true);
+        })
+        .catchError((error) {
+          debugPrint('Video initialization failed: $error');
         });
-        _controller.play();
-        _controller.setLooping(true);
-      });
   }
 
   @override
@@ -41,11 +53,11 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   void _togglePlay() {
     setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
+      if (_controller.video.value.isPlaying) {
+        _controller.video.pause();
         _isPlaying = false;
       } else {
-        _controller.play();
+        _controller.video.play();
         _isPlaying = true;
       }
     });
@@ -74,8 +86,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                 tag: widget.videoFile.path,
                 child: _isInitialized
                     ? AspectRatio(
-                        aspectRatio: _controller.value.aspectRatio,
-                        child: VideoPlayer(_controller),
+                        aspectRatio: _controller.video.value.aspectRatio,
+                        child: VideoPlayer(_controller.video),
                       )
                     : const CircularProgressIndicator(color: Colors.white),
               ),
@@ -137,7 +149,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   ),
                   padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
                   child: ValueListenableBuilder(
-                    valueListenable: _controller,
+                    valueListenable: _controller.video,
                     builder: (context, VideoPlayerValue value, child) {
                       final duration = value.duration;
                       final position = _isDragging
@@ -152,9 +164,6 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                       final currentValue = maxDuration > 0
                           ? position.inMilliseconds.toDouble()
                           : 0.0;
-                      // Ensure slider value is within range 0.0 - 1.0 or use divisions if needed,
-                      // but here we map value to duration.
-                      // Standard Slider expects a value between min/max.
 
                       return Column(
                         mainAxisSize: MainAxisSize.min,
@@ -194,15 +203,25 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                             ? newValue / maxDuration
                                             : 0.0;
                                       });
-                                      // Optional: continuous seek
-                                      _controller.seekTo(
+                                      // Seek while dragging for smooth scrubbing
+                                      _controller.video.seekTo(
                                         Duration(
                                           milliseconds: newValue.toInt(),
                                         ),
                                       );
                                     },
+                                    onChangeStart: (newValue) {
+                                      _wasPlayingBeforeDrag =
+                                          _controller.video.value.isPlaying;
+                                      if (_wasPlayingBeforeDrag) {
+                                        _controller.video.pause();
+                                      }
+                                      setState(() {
+                                        _isDragging = true;
+                                      });
+                                    },
                                     onChangeEnd: (newValue) {
-                                      _controller.seekTo(
+                                      _controller.video.seekTo(
                                         Duration(
                                           milliseconds: newValue.toInt(),
                                         ),
@@ -210,6 +229,9 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                       setState(() {
                                         _isDragging = false;
                                       });
+                                      if (_wasPlayingBeforeDrag) {
+                                        _controller.video.play();
+                                      }
                                     },
                                   ),
                                 ),

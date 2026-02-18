@@ -1,12 +1,16 @@
 /// 動画保存サービス
 ///
-/// 録画された動画のファイル処理とギャラリーへの保存を担当する。
+/// 録画された動画のファイル処理、アプリ専用フォルダへの保存、
+/// およびギャラリーへの保存を担当する。
 library;
 
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gal/gal.dart';
+
+/// アプリ専用動画フォルダ名
+const String _appVideoFolderName = 'SelecterCamera';
 
 /// 動画保存の結果を表すクラス
 class VideoSaveResult {
@@ -16,18 +20,26 @@ class VideoSaveResult {
   /// 元の動画ファイルのパス
   final String? videoPath;
 
+  /// アプリ専用フォルダでの保存先パス
+  final String? savedPath;
+
   /// エラーメッセージ（失敗時のみ）
   final String? errorMessage;
 
   const VideoSaveResult({
     required this.success,
     this.videoPath,
+    this.savedPath,
     this.errorMessage,
   });
 
   /// 成功結果を生成
-  factory VideoSaveResult.ok(String path) =>
-      VideoSaveResult(success: true, videoPath: path);
+  factory VideoSaveResult.ok(String videoPath, String savedPath) =>
+      VideoSaveResult(
+        success: true,
+        videoPath: videoPath,
+        savedPath: savedPath,
+      );
 
   /// エラー結果を生成
   factory VideoSaveResult.error(String message) =>
@@ -36,15 +48,40 @@ class VideoSaveResult {
 
 /// 動画ファイルの保存処理を管理するサービス
 class VideoSaveService {
-  /// 録画ファイルをギャラリーに保存する
+  /// アプリ専用の動画保存ディレクトリを取得（存在しない場合は作成）
+  Future<Directory> getAppVideoDirectory() async {
+    final appDocDir = await getApplicationDocumentsDirectory();
+    final videoDir = Directory('${appDocDir.path}/$_appVideoFolderName');
+    if (!await videoDir.exists()) {
+      await videoDir.create(recursive: true);
+      debugPrint('アプリ専用動画フォルダを作成: ${videoDir.path}');
+    }
+    return videoDir;
+  }
+
+  /// ソースファイルをアプリ専用フォルダにコピー保存する
+  ///
+  /// タイムスタンプ付きのファイル名で保存し、保存先パスを返す。
+  Future<String> _saveToAppFolder(String sourcePath) async {
+    final videoDir = await getAppVideoDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final destPath = '${videoDir.path}/$timestamp.mp4';
+
+    final sourceFile = File(sourcePath);
+    await sourceFile.copy(destPath);
+    debugPrint('アプリ専用フォルダに保存完了: $destPath');
+
+    return destPath;
+  }
+
+  /// 録画ファイルをアプリ専用フォルダとギャラリーに保存する
   ///
   /// [sourcePath] 録画された動画ファイルのパス
   ///
   /// 処理フロー:
   /// 1. ソースファイルの存在確認
-  /// 2. 安定したパスへのコピー（一時ファイルの無効化を防ぐ）
+  /// 2. アプリ専用フォルダへのコピー保存
   /// 3. ギャラリーへの保存
-  /// 4. 一時コピーファイルの削除
   Future<VideoSaveResult> saveToGallery(String sourcePath) async {
     try {
       final sourceFile = File(sourcePath);
@@ -53,24 +90,15 @@ class VideoSaveService {
       }
       debugPrint('ファイルサイズ: ${await sourceFile.length()} bytes');
 
-      // 安定したパスにコピー（一時ファイルの無効化を防ぐ）
-      final tempDir = await getTemporaryDirectory();
-      final stablePath =
-          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final stableFile = await sourceFile.copy(stablePath);
-      debugPrint('安定パスにコピー完了: ${stableFile.path}');
+      // アプリ専用フォルダに保存
+      final savedPath = await _saveToAppFolder(sourcePath);
 
-      // ギャラリーに保存
+      // ギャラリーに保存（アプリ専用フォルダに保存したファイルを使用）
       debugPrint('ギャラリーへの保存を開始...');
-      await Gal.putVideo(stableFile.path);
+      await Gal.putVideo(savedPath);
       debugPrint('ギャラリーへの保存成功');
 
-      // 一時コピーファイルの削除
-      try {
-        await stableFile.delete();
-      } catch (_) {}
-
-      return VideoSaveResult.ok(sourcePath);
+      return VideoSaveResult.ok(sourcePath, savedPath);
     } on GalException catch (e) {
       debugPrint('GalException: ${e.type} - ${e.toString()}');
       debugPrint('PlatformException詳細: ${e.platformException.message}');
@@ -80,5 +108,32 @@ class VideoSaveService {
       debugPrint('不明なエラー: $e');
       return VideoSaveResult.error(e.toString());
     }
+  }
+
+  /// アプリ専用フォルダ内の全動画ファイルを取得する
+  ///
+  /// 更新日時の降順（新しい順）でソートして返す。
+  Future<List<File>> getVideoList() async {
+    final videoDir = await getAppVideoDirectory();
+
+    if (!await videoDir.exists()) {
+      return [];
+    }
+
+    final files = <File>[];
+    await for (final entity in videoDir.list()) {
+      if (entity is File && entity.path.toLowerCase().endsWith('.mp4')) {
+        files.add(entity);
+      }
+    }
+
+    // 更新日時の降順でソート（新しいファイルが先頭）
+    files.sort((a, b) {
+      final aTime = a.lastModifiedSync();
+      final bTime = b.lastModifiedSync();
+      return bTime.compareTo(aTime);
+    });
+
+    return files;
   }
 }

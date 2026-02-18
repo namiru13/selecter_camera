@@ -4,10 +4,14 @@ import 'package:selecter_camera/services/video_save_service.dart';
 void main() {
   group('VideoSaveResult', () {
     test('成功結果の生成', () {
-      final result = VideoSaveResult.ok('/path/to/video.mp4');
+      final result = VideoSaveResult.ok(
+        '/path/to/video.mp4',
+        '/saved/path/video.mp4',
+      );
 
       expect(result.success, true);
       expect(result.videoPath, '/path/to/video.mp4');
+      expect(result.savedPath, '/saved/path/video.mp4');
       expect(result.errorMessage, isNull);
     });
 

@@ -1,0 +1,133 @@
+@GenerateNiceMocks([MockSpec<CameraService>(), MockSpec<CameraController>()])
+import 'package:camera/camera.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:selecter_camera/services/camera_service.dart';
+import 'package:selecter_camera/viewmodels/camera_viewmodel.dart';
+
+import 'camera_viewmodel_test.mocks.dart';
+
+void main() {
+  late MockCameraService mockCameraService;
+  late MockCameraController mockCameraController;
+  late ProviderContainer container;
+
+  setUp(() {
+    mockCameraService = MockCameraService();
+    mockCameraController = MockCameraController();
+
+    // CameraControllerの初期状態を設定
+    when(mockCameraController.value).thenReturn(
+      const CameraValue(
+        isInitialized: true,
+        isRecordingVideo: false,
+        isRecordingPaused: false,
+        isStreamingImages: false,
+        isTakingPicture: false,
+        flashMode: FlashMode.off,
+        exposureMode: ExposureMode.auto,
+        exposurePointSupported: true,
+        focusMode: FocusMode.auto,
+        focusPointSupported: true,
+        deviceOrientation: DeviceOrientation.portraitUp,
+        lockedCaptureOrientation: DeviceOrientation.portraitUp,
+        recordingOrientation: DeviceOrientation.portraitUp,
+        previewSize: Size(1080, 1920),
+        errorDescription: null,
+        description: CameraDescription(
+          name: '0',
+          lensDirection: CameraLensDirection.back,
+          sensorOrientation: 90,
+        ),
+      ),
+    );
+
+    // ズーム範囲のモック
+    when(mockCameraController.getMinZoomLevel()).thenAnswer((_) async => 1.0);
+    when(mockCameraController.getMaxZoomLevel()).thenAnswer((_) async => 8.0);
+    when(mockCameraController.setZoomLevel(any)).thenAnswer((_) async => null);
+
+    // CameraServiceがモックコントローラーを返すように設定
+    when(mockCameraService.controller).thenReturn(mockCameraController);
+    when(mockCameraService.initialize()).thenAnswer((_) async => null);
+
+    container = ProviderContainer(
+      overrides: [cameraServiceProvider.overrideWithValue(mockCameraService)],
+    );
+  });
+
+  tearDown(() {
+    container.dispose();
+  });
+
+  group('CameraViewModel', () {
+    test('initializeCamera sets default zoom to 1.0', () async {
+      // 範囲: 0.5 ~ 8.0 (1.0を含む)
+      when(mockCameraController.getMinZoomLevel()).thenAnswer((_) async => 0.5);
+      when(mockCameraController.getMaxZoomLevel()).thenAnswer((_) async => 8.0);
+
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      final state = container.read(cameraViewModelProvider);
+
+      // 状態が更新されていること
+      expect(state.currentZoomLevel, 1.0);
+
+      // 実機に反映されていること
+      verify(mockCameraController.setZoomLevel(1.0)).called(1);
+    });
+
+    test(
+      'initializeCamera clamps default zoom to minZoom if min > 1.0',
+      () async {
+        // 範囲: 2.0 ~ 8.0 (1.0を含まない)
+        when(
+          mockCameraController.getMinZoomLevel(),
+        ).thenAnswer((_) async => 2.0);
+        when(
+          mockCameraController.getMaxZoomLevel(),
+        ).thenAnswer((_) async => 8.0);
+
+        final viewModel = container.read(cameraViewModelProvider.notifier);
+        await viewModel.initializeCamera();
+
+        final state = container.read(cameraViewModelProvider);
+
+        // minZoomにクランプされること
+        expect(state.currentZoomLevel, 2.0);
+
+        // 実機に反映されていること
+        verify(mockCameraController.setZoomLevel(2.0)).called(1);
+      },
+    );
+
+    test(
+      'initializeCamera clamps default zoom to maxZoom if max < 1.0',
+      () async {
+        // 異常系だが念のため: 0.1 ~ 0.5 (1.0を含まない)
+        when(
+          mockCameraController.getMinZoomLevel(),
+        ).thenAnswer((_) async => 0.1);
+        when(
+          mockCameraController.getMaxZoomLevel(),
+        ).thenAnswer((_) async => 0.5);
+
+        final viewModel = container.read(cameraViewModelProvider.notifier);
+        await viewModel.initializeCamera();
+
+        final state = container.read(cameraViewModelProvider);
+
+        // maxZoomにクランプされること
+        expect(state.currentZoomLevel, 0.5);
+
+        // 実機に反映されていること
+        verify(mockCameraController.setZoomLevel(0.5)).called(1);
+      },
+    );
+  });
+}
