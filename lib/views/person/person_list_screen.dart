@@ -262,7 +262,11 @@ class _PersonGridItem extends StatelessWidget {
   Widget _buildThumbnail() {
     final thumbPath = person.thumbnailPath;
     if (thumbPath != null && File(thumbPath).existsSync()) {
-      return Image.file(File(thumbPath), fit: BoxFit.cover);
+      return Image.file(
+        File(thumbPath),
+        fit: BoxFit.cover,
+        cacheWidth: 300, // メモリ使用量を抑えるためキャッシュサイズを指定
+      );
     }
     return Container(
       color: Colors.grey[800],

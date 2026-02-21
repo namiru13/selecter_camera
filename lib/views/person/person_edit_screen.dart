@@ -258,6 +258,7 @@ class _PersonEditScreenState extends ConsumerState<PersonEditScreen> {
             child: Image.file(
               File(person.photoPaths[index]),
               fit: BoxFit.cover,
+              cacheWidth: 400, // メモリ使用量を抑えるためキャッシュサイズを指定
               errorBuilder: (context, error, stack) {
                 return Container(
                   color: Colors.grey[800],

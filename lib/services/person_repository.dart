@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -18,13 +19,14 @@ class PersonRepository {
     if (jsonString == null || jsonString.isEmpty) {
       return [];
     }
-    return PersonModel.decodeList(jsonString);
+    return await compute(PersonModel.decodeList, jsonString);
   }
 
   /// 人物データリストを保存する
   Future<void> _saveAll(List<PersonModel> persons) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKey, PersonModel.encodeList(persons));
+    final jsonString = await compute(PersonModel.encodeList, persons);
+    await prefs.setString(_prefsKey, jsonString);
   }
 
   /// 新しい人物を追加する
