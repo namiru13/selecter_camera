@@ -13,6 +13,8 @@ import '../models/camera_state.dart';
 import '../services/camera_service.dart';
 import '../services/settings_service.dart';
 import '../services/video_save_service.dart';
+import '../services/ffmpeg_service.dart';
+import '../viewmodels/skiers_viewmodel.dart';
 
 /// カメラのViewModel（Riverpod Notifier）
 class CameraViewModel extends Notifier<CameraState> {
@@ -178,7 +180,7 @@ class CameraViewModel extends Notifier<CameraState> {
     }
   }
 
-  /// 録画を停止し、ギャラリーに保存する
+  /// 録画を停止し、パスを一時保持する（ギャラリー保存は後続処理で行う）
   Future<void> stopRecording() async {
     if (state.controller == null || !state.controller!.value.isRecordingVideo) {
       return;
@@ -191,30 +193,95 @@ class CameraViewModel extends Notifier<CameraState> {
       }
 
       final file = await state.controller!.stopVideoRecording();
-      debugPrint('動画録画完了: ${file.path}');
+      debugPrint('動画録画完了 (一時保存): ${file.path}');
 
-      // ギャラリーに保存
-      final result = await _videoSaveService.saveToGallery(file.path);
-
-      if (result.success) {
-        state = state.copyWith(
-          status: CameraStatus.ready,
-          lastVideoPath: result.savedPath,
-          clearRecordingStartTime: true,
-        );
-      } else {
-        state = state.copyWith(
-          status: CameraStatus.error,
-          errorMessage: result.errorMessage,
-          clearRecordingStartTime: true,
-        );
-      }
+      state = state.copyWith(
+        status: CameraStatus.ready,
+        tempVideoPath: file.path,
+        clearRecordingStartTime: true,
+      );
     } catch (e) {
       debugPrint('録画停止エラー: $e');
       state = state.copyWith(
         status: CameraStatus.error,
         errorMessage: e.toString(),
         clearRecordingStartTime: true,
+      );
+    }
+  }
+
+  /// 一時保持している動画を編集（メタデータ＆サムネイル付与）してギャラリーに保存する
+  Future<void> processAndSaveVideo() async {
+    final videoPath = state.tempVideoPath;
+    if (videoPath == null) return;
+
+    state = state.copyWith(isSaving: true);
+
+    try {
+      final ffmpegService = FFmpegService();
+      String? thumbnailImagePath;
+
+      // 選択されている滑走者がいれば情報を取得
+      final skierId = state.selectedSkierId;
+      if (skierId != null) {
+        final skiers = ref.read(skierViewModelProvider);
+        try {
+          final skier = skiers.firstWhere((s) => s.id == skierId);
+          // サムネイル画像の生成
+          thumbnailImagePath = await ffmpegService.generateThumbnailImage(
+            skierName: skier.name,
+            skierImagePath: skier.referenceImagePath,
+          );
+        } catch (_) {
+          debugPrint('選択された滑走者ID ($skierId) に該当するデータが見つかりません');
+        }
+      }
+
+      String finalVideoPath = videoPath;
+
+      // サムネイル画像が生成されていれば動画と合成
+      if (thumbnailImagePath != null) {
+        final outputPath =
+            '${videoPath.substring(0, videoPath.lastIndexOf('.'))}_processed.mp4';
+
+        final success = await ffmpegService.processVideoWithThumbnail(
+          sourceVideoPath: videoPath,
+          thumbnailImagePath: thumbnailImagePath,
+          outputPath: outputPath,
+        );
+
+        if (success) {
+          finalVideoPath = outputPath;
+        }
+
+        // 後始末
+        await ffmpegService.cleanupTempFiles();
+      }
+
+      // ギャラリーに保存
+      final result = await _videoSaveService.saveToGallery(finalVideoPath);
+
+      if (result.success) {
+        state = state.copyWith(
+          isSaving: false,
+          lastVideoPath: result.savedPath,
+          clearTempVideoPath: true,
+        );
+      } else {
+        state = state.copyWith(
+          isSaving: false,
+          status: CameraStatus.error,
+          errorMessage: result.errorMessage,
+          clearTempVideoPath: true,
+        );
+      }
+    } catch (e) {
+      debugPrint('動画保存・処理エラー: $e');
+      state = state.copyWith(
+        isSaving: false,
+        status: CameraStatus.error,
+        errorMessage: e.toString(),
+        clearTempVideoPath: true,
       );
     }
   }

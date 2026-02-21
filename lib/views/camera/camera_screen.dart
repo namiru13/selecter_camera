@@ -115,13 +115,24 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           body: Stack(
             children: [
               // カメラプレビュー（回転なし・常にフルスクリーン）
-              if (isActive)
+              if (isActive && !cameraState.isSaving)
                 _buildCameraPreview(cameraState)
+              else if (cameraState.isSaving)
+                const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(color: Colors.white),
+                      SizedBox(height: 16),
+                      Text('動画を処理中...', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                )
               else
                 const Center(child: CircularProgressIndicator()),
 
               // グリッドライン
-              if (isActive && cameraState.showGrid)
+              if (isActive && !cameraState.isSaving && cameraState.showGrid)
                 const Positioned.fill(child: GridOverlay()),
 
               // フォーカスインジケータ
@@ -142,10 +153,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // ズームゲージ
-              if (isActive) _buildZoomGauge(cameraState, rotationTurns),
+              if (isActive && !cameraState.isSaving)
+                _buildZoomGauge(cameraState, rotationTurns),
 
               // 滑走者選択カルーセル（録画中以外）
-              if (isActive && !isRecording)
+              if (isActive && !isRecording && !cameraState.isSaving)
                 Positioned(
                   left: 0,
                   right: 0,
@@ -159,16 +171,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // 録画ボタン
-              _buildRecordButton(cameraState),
+              if (!cameraState.isSaving) _buildRecordButton(cameraState),
 
               // プレビューボタン
-              _buildPreviewButton(cameraState),
+              if (!cameraState.isSaving) _buildPreviewButton(cameraState),
 
               // 上部ツールバー（グリッド・設定）
-              if (isActive && !isRecording) _buildTopToolbar(cameraState),
+              if (isActive && !isRecording && !cameraState.isSaving)
+                _buildTopToolbar(cameraState),
 
               // 左上：人物一覧画面への遷移ボタン
-              if (isActive && !isRecording)
+              if (isActive && !isRecording && !cameraState.isSaving)
                 Positioned(
                   top: 48,
                   left: 16,
@@ -185,7 +198,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // 左端：人物一覧リスト
-              if (isActive && !isRecording)
+              if (isActive && !isRecording && !cameraState.isSaving)
                 const Positioned(
                   top: 100, // 上部のボタン類を避ける
                   left: 16,
@@ -194,7 +207,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // 右上：選択された人物のポップアップ
-              if (isActive && !isRecording)
+              if (isActive && !isRecording && !cameraState.isSaving)
                 const Positioned(
                   top: 48,
                   right: 72, // 上部ツールバーの左側に配置
@@ -368,9 +381,15 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   final currentState = ref.read(cameraViewModelProvider);
 
                   // エラーがなく、設定がONの場合に確認ダイアログを表示
-                  if (currentState.status != CameraStatus.error &&
-                      currentState.showSkierSelectionConfirmation) {
-                    _showSkierSelectionDialog(context);
+                  if (currentState.status != CameraStatus.error) {
+                    if (currentState.showSkierSelectionConfirmation) {
+                      _showSkierSelectionDialog(context);
+                    } else {
+                      // 確認なしの場合はすぐに保存処理へ移行
+                      ref
+                          .read(cameraViewModelProvider.notifier)
+                          .processAndSaveVideo();
+                    }
                   }
                 } else {
                   ref.read(cameraViewModelProvider.notifier).startRecording();
@@ -466,6 +485,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
+                // 選択完了後、ビデオ保存処理を開始
+                ref
+                    .read(cameraViewModelProvider.notifier)
+                    .processAndSaveVideo();
               },
               child: const Text('OK'),
             ),

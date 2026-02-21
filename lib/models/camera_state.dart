@@ -41,6 +41,12 @@ class CameraState {
   /// 録画終了時に滑走者選択確認を表示するかどうか
   final bool showSkierSelectionConfirmation;
 
+  /// 録画直後の未処理動画パス（保存処理前）
+  final String? tempVideoPath;
+
+  /// 動画保存/処理中かどうか
+  final bool isSaving;
+
   CameraState({
     this.status = CameraStatus.uninitialized,
     this.controller,
@@ -56,6 +62,8 @@ class CameraState {
     this.selectedPersonIds = const {},
     this.resolutionPreset = ResolutionPreset.high,
     this.showSkierSelectionConfirmation = true,
+    this.tempVideoPath,
+    this.isSaving = false,
   });
 
   CameraState copyWith({
@@ -76,6 +84,9 @@ class CameraState {
     Set<String>? selectedPersonIds,
     ResolutionPreset? resolutionPreset,
     bool? showSkierSelectionConfirmation,
+    String? tempVideoPath,
+    bool? clearTempVideoPath,
+    bool? isSaving,
   }) {
     return CameraState(
       status: status ?? this.status,
@@ -99,6 +110,10 @@ class CameraState {
       resolutionPreset: resolutionPreset ?? this.resolutionPreset,
       showSkierSelectionConfirmation:
           showSkierSelectionConfirmation ?? this.showSkierSelectionConfirmation,
+      tempVideoPath: clearTempVideoPath == true
+          ? null
+          : (tempVideoPath ?? this.tempVideoPath),
+      isSaving: isSaving ?? this.isSaving,
     );
   }
 }

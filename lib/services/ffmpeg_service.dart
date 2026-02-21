@@ -35,11 +35,51 @@ class FFmpegService {
         Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
       );
 
-      // 背景（黒）
+      // 背景（黒）またはダークグレー
       canvas.drawRect(
         Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
-        Paint()..color = const Color(0xFF000000),
+        Paint()..color = const Color(0xFF1A1A1A),
       );
+
+      // skierImagePath があれば画像を描画
+      double textStartY = (height / 2) - 40;
+      if (skierImagePath != null) {
+        try {
+          final file = File(skierImagePath);
+          final bytes = await file.readAsBytes();
+          final codec = await ui.instantiateImageCodec(bytes);
+          final frameInfo = await codec.getNextFrame();
+          final skierImage = frameInfo.image;
+
+          // 画像を縮小・中央上部に配置
+          final imgWidth = 400.0;
+          final imgHeight = 400.0 * (skierImage.height / skierImage.width);
+          final imgX = (width - imgWidth) / 2;
+          final imgY = (height / 2) - imgHeight + 60; // 高さ調整
+
+          final srcRect = Rect.fromLTWH(
+            0,
+            0,
+            skierImage.width.toDouble(),
+            skierImage.height.toDouble(),
+          );
+          final dstRect = Rect.fromLTWH(imgX, imgY, imgWidth, imgHeight);
+
+          // 角丸クリップ
+          canvas.save();
+          final rRect = RRect.fromRectAndRadius(
+            dstRect,
+            const Radius.circular(20),
+          );
+          canvas.clipRRect(rRect);
+          canvas.drawImageRect(skierImage, srcRect, dstRect, Paint());
+          canvas.restore();
+
+          textStartY = imgY + imgHeight + 40; // 画像の下にテキストを配置
+        } catch (e) {
+          debugPrint('画像ロードエラー: $e');
+        }
+      }
 
       // 中央にテキスト情報を描画
       final textPainter = TextPainter(
@@ -56,10 +96,7 @@ class FFmpegService {
       textPainter.layout(maxWidth: width.toDouble() - 100);
       textPainter.paint(
         canvas,
-        Offset(
-          (width - textPainter.width) / 2,
-          (height - textPainter.height) / 2,
-        ),
+        Offset((width - textPainter.width) / 2, textStartY),
       );
 
       // 画像をPNGエンコード
@@ -164,6 +201,73 @@ class FFmpegService {
       }
     } catch (e) {
       debugPrint('動画結合エラー: $e');
+      return false;
+    }
+  }
+
+  /// サムネイル画像から動画を作成し、メイン動画と結合して、メタデータ（カバー画像）を設定する一連の処理
+  ///
+  /// [sourceVideoPath] 元の動画パス
+  /// [thumbnailImagePath] 生成済みのサムネイル画像パス
+  /// [thumbnailDuration] サムネイル動画の表示時間（秒）
+  /// [outputPath] 出力先の動画パス
+  Future<bool> processVideoWithThumbnail({
+    required String sourceVideoPath,
+    required String thumbnailImagePath,
+    double thumbnailDuration = 2.0,
+    required String outputPath,
+  }) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+
+      // 1. サムネイル画像から短い動画(mp4)を作る
+      final tempThumbVideo =
+          '${tempDir.path}/temp_thumb_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final thumbCommand =
+          '-loop 1 -i "$thumbnailImagePath" -c:v mpeg4 -t $thumbnailDuration -pix_fmt yuv420p "$tempThumbVideo"';
+
+      var session = await FFmpegKit.execute(thumbCommand);
+      if (!ReturnCode.isSuccess(await session.getReturnCode())) {
+        debugPrint('サムネイル動画生成失敗: ${await session.getAllLogsAsString()}');
+        return false;
+      }
+
+      // 2. 結合とメタデータ付与を一度に行うコマンド
+      // -i tempThumbVideo (0:v)
+      // -i sourceVideoPath (1:v, 1:a?)
+      // -i thumbnailImagePath (メタデータ用)
+      // filter_complexで結合し、-mapで音声ループとメタデータをマッピング
+
+      final listPath =
+          '${tempDir.path}/concat_list_${DateTime.now().millisecondsSinceEpoch}.txt';
+      final listFile = File(listPath);
+      await listFile.writeAsString(
+        "file '$tempThumbVideo'\nfile '$sourceVideoPath'\n",
+      );
+
+      // concatプロトコルで結合しつつ、thumbnailImagePath をカバー画像として付与
+      final concatCommand =
+          '-f concat -safe 0 -i "$listPath" -i "$thumbnailImagePath" -map 0 -map 1 -c copy -c:v:1 mjpeg -disposition:v:1 attached_pic "$outputPath"';
+
+      session = await FFmpegKit.execute(concatCommand);
+      final returnCode = await session.getReturnCode();
+
+      // クリーンアップ
+      try {
+        await listFile.delete();
+        await File(tempThumbVideo).delete();
+      } catch (_) {}
+
+      if (ReturnCode.isSuccess(returnCode)) {
+        debugPrint('メタデータ付き動画合成成功: $outputPath');
+        return true;
+      } else {
+        final logs = await session.getAllLogsAsString();
+        debugPrint('メタデータ付き動画合成失敗: $logs');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('processVideoWithThumbnail エラー: $e');
       return false;
     }
   }
