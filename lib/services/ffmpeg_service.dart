@@ -214,28 +214,29 @@ class FFmpegService {
   Future<bool> processVideoWithThumbnail({
     required String sourceVideoPath,
     required String thumbnailImagePath,
-    double thumbnailDuration = 2.0, // 使わなくなりますが互換性のため残します
+    double thumbnailDuration = 2.0,
     required String outputPath,
   }) async {
     try {
-      // 結合処理を廃止し、メタデータとしてカバー画像（attached_pic）を埋め込む方式に変更
-      // -i sourceVideoPath (0:v, 0:a)
-      // -i thumbnailImagePath (1:v)
-      // ストリームコピー（-c copy）で画質劣化なし・高速処理を行い、
-      // 1番目の映像ストリーム（画像）をmjpegとしてattached_pic（カバー画像）に指定する
-      final command =
-          '-i "$sourceVideoPath" -i "$thumbnailImagePath" -map 0 -map 1 -c copy -c:v:1 mjpeg -disposition:v:1 attached_pic "$outputPath"';
+      // 冒頭数秒間の映像（0秒〜thumbnailDuration秒）の上に、サムネイル画像を上書き描画する。
+      // - filter_complex で、入力画像[1:v]を元動画[0:v]のサイズにスケーリングし、元映像にoverlayする。
+      // - enable='between(t,0,thumbnailDuration)' で表示区間を制御。
+      // - 音声はそのまま (-c:a copy) 用いる。
+      // - 映像は再エンコードされるためスマートフォン向けに高速エンコードオプション（ultrafast）を適用。
 
-      debugPrint('FFmpeg メタデータ付与コマンド実行: $command');
+      final command =
+          '-i "$sourceVideoPath" -i "$thumbnailImagePath" -filter_complex "[1:v][0:v]scale2ref=w=iw:h=ih[scaled_thumb][vid];[vid][scaled_thumb]overlay=x=0:y=0:enable=\'between(t,0,$thumbnailDuration)\'[out]" -map "[out]" -map 0:a? -c:v libx264 -preset ultrafast -crf 28 -c:a copy "$outputPath"';
+
+      debugPrint('FFmpeg サムネイル焼き付け(オーバーレイ)コマンド実行: $command');
       final session = await FFmpegKit.execute(command);
       final returnCode = await session.getReturnCode();
 
       if (ReturnCode.isSuccess(returnCode)) {
-        debugPrint('メタデータ（カバー画像）付き動画の生成成功: $outputPath');
+        debugPrint('サムネイル焼き付け動画の生成成功: $outputPath');
         return true;
       } else {
         final logs = await session.getAllLogsAsString();
-        debugPrint('メタデータ（カバー画像）付き動画の生成失敗: $logs');
+        debugPrint('サムネイル焼き付け動画の生成失敗: $logs');
         return false;
       }
     } catch (e) {
