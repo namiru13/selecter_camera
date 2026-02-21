@@ -214,56 +214,28 @@ class FFmpegService {
   Future<bool> processVideoWithThumbnail({
     required String sourceVideoPath,
     required String thumbnailImagePath,
-    double thumbnailDuration = 2.0,
+    double thumbnailDuration = 2.0, // 使わなくなりますが互換性のため残します
     required String outputPath,
   }) async {
     try {
-      final tempDir = await getTemporaryDirectory();
+      // 結合処理を廃止し、メタデータとしてカバー画像（attached_pic）を埋め込む方式に変更
+      // -i sourceVideoPath (0:v, 0:a)
+      // -i thumbnailImagePath (1:v)
+      // ストリームコピー（-c copy）で画質劣化なし・高速処理を行い、
+      // 1番目の映像ストリーム（画像）をmjpegとしてattached_pic（カバー画像）に指定する
+      final command =
+          '-i "$sourceVideoPath" -i "$thumbnailImagePath" -map 0 -map 1 -c copy -c:v:1 mjpeg -disposition:v:1 attached_pic "$outputPath"';
 
-      // 1. サムネイル画像から短い動画(mp4)を作る
-      final tempThumbVideo =
-          '${tempDir.path}/temp_thumb_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final thumbCommand =
-          '-loop 1 -i "$thumbnailImagePath" -c:v mpeg4 -t $thumbnailDuration -pix_fmt yuv420p "$tempThumbVideo"';
-
-      var session = await FFmpegKit.execute(thumbCommand);
-      if (!ReturnCode.isSuccess(await session.getReturnCode())) {
-        debugPrint('サムネイル動画生成失敗: ${await session.getAllLogsAsString()}');
-        return false;
-      }
-
-      // 2. 結合とメタデータ付与を一度に行うコマンド
-      // -i tempThumbVideo (0:v)
-      // -i sourceVideoPath (1:v, 1:a?)
-      // -i thumbnailImagePath (メタデータ用)
-      // filter_complexで結合し、-mapで音声ループとメタデータをマッピング
-
-      final listPath =
-          '${tempDir.path}/concat_list_${DateTime.now().millisecondsSinceEpoch}.txt';
-      final listFile = File(listPath);
-      await listFile.writeAsString(
-        "file '$tempThumbVideo'\nfile '$sourceVideoPath'\n",
-      );
-
-      // concatプロトコルで結合しつつ、thumbnailImagePath をカバー画像として付与
-      final concatCommand =
-          '-f concat -safe 0 -i "$listPath" -i "$thumbnailImagePath" -map 0 -map 1 -c copy -c:v:1 mjpeg -disposition:v:1 attached_pic "$outputPath"';
-
-      session = await FFmpegKit.execute(concatCommand);
+      debugPrint('FFmpeg メタデータ付与コマンド実行: $command');
+      final session = await FFmpegKit.execute(command);
       final returnCode = await session.getReturnCode();
 
-      // クリーンアップ
-      try {
-        await listFile.delete();
-        await File(tempThumbVideo).delete();
-      } catch (_) {}
-
       if (ReturnCode.isSuccess(returnCode)) {
-        debugPrint('メタデータ付き動画合成成功: $outputPath');
+        debugPrint('メタデータ（カバー画像）付き動画の生成成功: $outputPath');
         return true;
       } else {
         final logs = await session.getAllLogsAsString();
-        debugPrint('メタデータ付き動画合成失敗: $logs');
+        debugPrint('メタデータ（カバー画像）付き動画の生成失敗: $logs');
         return false;
       }
     } catch (e) {
