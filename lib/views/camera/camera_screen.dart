@@ -183,7 +183,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // 左端：人物一覧リスト
-              if (isActive && !isRecording && !cameraState.isSaving)
+              if (isActive && !cameraState.isSaving)
                 const Positioned(
                   top: 100, // 上部のボタン類を避ける
                   left: 16,
@@ -192,7 +192,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 ),
 
               // 右上：選択された人物のポップアップ
-              if (isActive && !isRecording && !cameraState.isSaving)
+              if (isActive && !cameraState.isSaving)
                 const Positioned(
                   top: 48,
                   right: 72, // 上部ツールバーの左側に配置
