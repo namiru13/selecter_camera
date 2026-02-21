@@ -64,9 +64,15 @@ class _FakeWidget_4 extends _i1.SmartFake implements _i4.Widget {
 /// See the documentation for Mockito's code generation for more information.
 class MockCameraService extends _i1.Mock implements _i6.CameraService {
   @override
-  _i7.Future<void> initialize() =>
+  _i7.Future<void> initialize({
+    _i3.ResolutionPreset? resolutionPreset = _i3.ResolutionPreset.high,
+    _i3.CameraLensDirection? lensDirection = _i3.CameraLensDirection.back,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#initialize, []),
+            Invocation.method(#initialize, [], {
+              #resolutionPreset: resolutionPreset,
+              #lensDirection: lensDirection,
+            }),
             returnValue: _i7.Future<void>.value(),
             returnValueForMissingStub: _i7.Future<void>.value(),
           )

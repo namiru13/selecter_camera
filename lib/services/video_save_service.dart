@@ -1,7 +1,7 @@
 /// 動画保存サービス
 ///
 /// 録画された動画のファイル処理、アプリ専用フォルダへの保存、
-/// およびギャラリーへの保存を担当する。
+/// ギャラリーへの保存、および動画の削除を担当する。
 library;
 
 import 'dart:io';
@@ -107,6 +107,25 @@ class VideoSaveService {
     } catch (e) {
       debugPrint('不明なエラー: $e');
       return VideoSaveResult.error(e.toString());
+    }
+  }
+
+  /// 動画ファイルを削除する
+  ///
+  /// アプリ専用フォルダ内のファイルを削除する。
+  /// [filePath] 削除する動画ファイルのパス
+  Future<bool> deleteVideo(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        await file.delete();
+        debugPrint('動画を削除: $filePath');
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('動画削除エラー: $e');
+      return false;
     }
   }
 

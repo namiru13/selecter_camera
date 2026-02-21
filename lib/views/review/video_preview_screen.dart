@@ -1,7 +1,15 @@
+/// 動画プレビュー画面
+///
+/// 撮影した動画をビューワーで再生する画面。
+/// シークバー、再生/一時停止、共有ボタン、動画一覧遷移ボタンを含む。
+library;
+
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
+import 'video_list_screen.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final File videoFile;
@@ -27,7 +35,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     _controller = VideoEditorController.file(
       widget.videoFile,
       minDuration: const Duration(seconds: 1),
-      maxDuration: const Duration(seconds: 3600), // Allow long videos
+      maxDuration: const Duration(seconds: 3600), // 長時間動画を許可
     );
 
     _controller
@@ -63,6 +71,24 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
     });
   }
 
+  /// 動画ファイルを共有する
+  Future<void> _shareVideo() async {
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(widget.videoFile.path)],
+          text: 'Skier Camera で撮影した動画',
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('共有エラー: $e')));
+      }
+    }
+  }
+
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(duration.inMinutes.remainder(60));
@@ -92,7 +118,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                     : const CircularProgressIndicator(color: Colors.white),
               ),
             ),
-            // Tap area for play/pause
+            // タップエリア（再生/一時停止）
             if (_isInitialized)
               GestureDetector(
                 onTap: _togglePlay,
@@ -121,7 +147,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   ),
                 ),
               ),
-            // Close button
+            // 閉じるボタン
             Positioned(
               top: 48,
               left: 16,
@@ -130,7 +156,41 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
-            // Seek bar and timestamp
+            // 上部右側ツールバー
+            Positioned(
+              top: 48,
+              right: 16,
+              child: Row(
+                children: [
+                  // 共有ボタン
+                  IconButton(
+                    icon: const Icon(
+                      Icons.share,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: _shareVideo,
+                  ),
+                  const SizedBox(width: 4),
+                  // ビューワー一覧画面への遷移ボタン
+                  IconButton(
+                    icon: const Icon(
+                      Icons.video_library,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const VideoListScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            // シークバーとタイムスタンプ
             if (_isInitialized)
               Positioned(
                 left: 0,
@@ -141,10 +201,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withAlpha(204), // 0.8 * 255 = 204
-                      ],
+                      colors: [Colors.transparent, Colors.black.withAlpha(204)],
                     ),
                   ),
                   padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
@@ -174,7 +231,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                 _formatDuration(position),
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontFamily: 'Courier', // Monospace font
+                                  fontFamily: 'Courier',
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -203,7 +260,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                             ? newValue / maxDuration
                                             : 0.0;
                                       });
-                                      // Seek while dragging for smooth scrubbing
+                                      // ドラッグ中のスムーズスクラブ
                                       _controller.video.seekTo(
                                         Duration(
                                           milliseconds: newValue.toInt(),

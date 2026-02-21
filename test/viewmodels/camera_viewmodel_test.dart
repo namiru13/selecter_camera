@@ -1,15 +1,32 @@
 @GenerateNiceMocks([MockSpec<CameraService>(), MockSpec<CameraController>()])
 import 'package:camera/camera.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:selecter_camera/services/camera_service.dart';
+import 'package:selecter_camera/services/settings_service.dart';
 import 'package:selecter_camera/viewmodels/camera_viewmodel.dart';
 
 import 'camera_viewmodel_test.mocks.dart';
+
+/// テスト用のSettingsServiceスタブ
+///
+/// SharedPreferencesに依存しない固定値を返す。
+class FakeSettingsService extends SettingsService {
+  @override
+  Future<ResolutionPreset> getResolutionPreset() async => ResolutionPreset.high;
+
+  @override
+  Future<bool> getShowGrid() async => false;
+
+  @override
+  Future<void> setResolutionPreset(ResolutionPreset preset) async {}
+
+  @override
+  Future<void> setShowGrid(bool show) async {}
+}
 
 void main() {
   late MockCameraService mockCameraService;
@@ -49,14 +66,22 @@ void main() {
     // ズーム範囲のモック
     when(mockCameraController.getMinZoomLevel()).thenAnswer((_) async => 1.0);
     when(mockCameraController.getMaxZoomLevel()).thenAnswer((_) async => 8.0);
-    when(mockCameraController.setZoomLevel(any)).thenAnswer((_) async => null);
+    when(mockCameraController.setZoomLevel(any)).thenAnswer((_) async {});
 
     // CameraServiceがモックコントローラーを返すように設定
     when(mockCameraService.controller).thenReturn(mockCameraController);
-    when(mockCameraService.initialize()).thenAnswer((_) async => null);
+    when(
+      mockCameraService.initialize(
+        resolutionPreset: anyNamed('resolutionPreset'),
+        lensDirection: anyNamed('lensDirection'),
+      ),
+    ).thenAnswer((_) async {});
 
     container = ProviderContainer(
-      overrides: [cameraServiceProvider.overrideWithValue(mockCameraService)],
+      overrides: [
+        cameraServiceProvider.overrideWithValue(mockCameraService),
+        settingsServiceProvider.overrideWithValue(FakeSettingsService()),
+      ],
     );
   });
 

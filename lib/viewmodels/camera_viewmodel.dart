@@ -1,29 +1,34 @@
 /// カメラのViewModel
 ///
-/// カメラの初期化、録画制御、ズーム制御を統合管理する。
+/// カメラの初期化、録画制御、ズーム制御、フォーカス、
+/// グリッド表示、解像度設定を統合管理する。
 /// 各責務は専用のサービス/コントローラーに委譲している。
 library;
 
-import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/camera_state.dart';
 import '../services/camera_service.dart';
+import '../services/settings_service.dart';
 import '../services/video_save_service.dart';
 
 /// カメラのViewModel（Riverpod Notifier）
 class CameraViewModel extends Notifier<CameraState> {
   late final CameraService _cameraService;
-
+  late final SettingsService _settingsService;
   final VideoSaveService _videoSaveService = VideoSaveService();
 
   @override
   CameraState build() {
     _cameraService = ref.read(cameraServiceProvider);
+    _settingsService = ref.read(settingsServiceProvider);
 
     // 破棄時のクリーンアップを登録
     ref.onDispose(() {
       stopInferenceLoop();
+      _cameraService.dispose();
     });
 
     return CameraState();
@@ -32,7 +37,11 @@ class CameraViewModel extends Notifier<CameraState> {
   /// カメラを初期化する
   Future<void> initializeCamera() async {
     try {
-      await _cameraService.initialize();
+      // 保存された解像度設定を読み込む
+      final resolution = await _settingsService.getResolutionPreset();
+      final showGrid = await _settingsService.getShowGrid();
+
+      await _cameraService.initialize(resolutionPreset: resolution);
       if (_cameraService.controller != null) {
         final minZoom = await _cameraService.controller!.getMinZoomLevel();
         final maxZoom = await _cameraService.controller!.getMaxZoomLevel();
@@ -43,6 +52,8 @@ class CameraViewModel extends Notifier<CameraState> {
           minZoomLevel: minZoom,
           maxZoomLevel: maxZoom,
           currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
+          resolutionPreset: resolution,
+          showGrid: showGrid,
         );
 
         // 初期ズームを実機に反映
@@ -56,6 +67,13 @@ class CameraViewModel extends Notifier<CameraState> {
     }
   }
 
+  /// カメラリソースを解放する（ライフサイクル管理用）
+  Future<void> disposeCamera() async {
+    await stopInferenceLoop();
+    await _cameraService.dispose();
+    state = CameraState();
+  }
+
   /// ズームレベルを設定する
   Future<void> setZoomLevel(double zoom) async {
     if (state.controller == null) return;
@@ -63,6 +81,70 @@ class CameraViewModel extends Notifier<CameraState> {
     final newZoom = zoom.clamp(state.minZoomLevel, state.maxZoomLevel);
     await state.controller!.setZoomLevel(newZoom);
     state = state.copyWith(currentZoomLevel: newZoom);
+  }
+
+  /// フォーカスポイントを設定する
+  ///
+  /// [point] 正規化された座標（0.0〜1.0）
+  Future<void> setFocusPoint(Offset point) async {
+    if (state.controller == null) return;
+
+    try {
+      await state.controller!.setFocusPoint(point);
+      await state.controller!.setFocusMode(FocusMode.auto);
+      await state.controller!.setExposurePoint(point);
+      state = state.copyWith(focusPoint: point);
+
+      // 2秒後にフォーカスインジケータを消す
+      Future.delayed(const Duration(seconds: 2), () {
+        if (state.focusPoint == point) {
+          state = state.copyWith(clearFocusPoint: true);
+        }
+      });
+    } catch (e) {
+      debugPrint('フォーカス設定エラー: $e');
+    }
+  }
+
+  /// グリッド表示を切り替える
+  Future<void> toggleGrid() async {
+    final newShow = !state.showGrid;
+    state = state.copyWith(showGrid: newShow);
+    await _settingsService.setShowGrid(newShow);
+  }
+
+  /// 解像度を変更する
+  ///
+  /// カメラの再初期化が必要なため、現在の録画状態を考慮する。
+  Future<void> setResolutionPreset(ResolutionPreset preset) async {
+    if (state.status == CameraStatus.recording) return;
+
+    await _settingsService.setResolutionPreset(preset);
+    state = state.copyWith(resolutionPreset: preset);
+
+    // カメラを再初期化
+    await _cameraService.dispose();
+    await initializeCamera();
+  }
+
+  /// 選択された滑走者IDを設定する
+  void setSelectedSkierId(String? skierId) {
+    if (skierId == null) {
+      state = state.copyWith(clearSelectedSkierId: true);
+    } else {
+      state = state.copyWith(selectedSkierId: skierId);
+    }
+  }
+
+  /// 人物の選択状態を切り替える（複数選択対応）
+  void togglePersonSelection(String personId) {
+    final currentSelected = Set<String>.from(state.selectedPersonIds);
+    if (currentSelected.contains(personId)) {
+      currentSelected.remove(personId);
+    } else {
+      currentSelected.add(personId);
+    }
+    state = state.copyWith(selectedPersonIds: currentSelected);
   }
 
   /// 録画を開始する
@@ -74,7 +156,10 @@ class CameraViewModel extends Notifier<CameraState> {
 
     try {
       await state.controller!.startVideoRecording();
-      state = state.copyWith(status: CameraStatus.recording);
+      state = state.copyWith(
+        status: CameraStatus.recording,
+        recordingStartTime: DateTime.now(),
+      );
     } catch (e) {
       state = state.copyWith(
         status: CameraStatus.error,
@@ -105,11 +190,13 @@ class CameraViewModel extends Notifier<CameraState> {
         state = state.copyWith(
           status: CameraStatus.ready,
           lastVideoPath: result.savedPath,
+          clearRecordingStartTime: true,
         );
       } else {
         state = state.copyWith(
           status: CameraStatus.error,
           errorMessage: result.errorMessage,
+          clearRecordingStartTime: true,
         );
       }
     } catch (e) {
@@ -117,6 +204,7 @@ class CameraViewModel extends Notifier<CameraState> {
       state = state.copyWith(
         status: CameraStatus.error,
         errorMessage: e.toString(),
+        clearRecordingStartTime: true,
       );
     }
   }

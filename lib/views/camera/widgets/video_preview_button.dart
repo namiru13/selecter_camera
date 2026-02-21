@@ -109,12 +109,13 @@ class _VideoPreviewButtonState extends State<VideoPreviewButton> {
               )
             : const Center(
                 child: Text(
-                  "プレビュー\n画面",
+                  "preview",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.normal,
+                    fontStyle: FontStyle.italic,
                   ),
                 ),
               ),

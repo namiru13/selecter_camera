@@ -1,21 +1,28 @@
 /// カメラ撮影画面
 ///
 /// カメラプレビュー、録画ボタン、ズームゲージ、
-/// プレビューボタンを含むメイン撮影画面。
+/// プレビューボタン、グリッドライン、フォーカスインジケータ、
+/// 録画タイマー、解像度設定、滑走者選択カルーセルを含むメイン撮影画面。
 /// 画面はポートレートに固定し、UI要素のみデバイスの向きに
 /// 合わせてアニメーション付きで回転する（一般的なスマホカメラと同じ挙動）。
 library;
 
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:camera/camera.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/camera_state.dart';
+import '../../services/settings_service.dart';
 import '../../viewmodels/camera_viewmodel.dart';
 import '../../viewmodels/zoom_controller.dart';
 import 'widgets/arc_zoom_gauge.dart';
+import 'widgets/grid_overlay.dart';
+import 'widgets/recording_timer.dart';
+import 'widgets/skier_selector.dart';
 import 'widgets/video_preview_button.dart';
+import 'widgets/person_selector_popup.dart';
+import '../person/person_list_screen.dart';
 
 /// カメラ撮影画面ウィジェット
 class CameraScreen extends ConsumerStatefulWidget {
@@ -25,13 +32,51 @@ class CameraScreen extends ConsumerStatefulWidget {
   ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends ConsumerState<CameraScreen> {
+class _CameraScreenState extends ConsumerState<CameraScreen>
+    with WidgetsBindingObserver {
   final ZoomController _zoomController = ZoomController();
+
+  /// ピンチズーム用の基準ズーム値
+  double _baseZoom = 1.0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// アプリのライフサイクル変更を処理する
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final viewModel = ref.read(cameraViewModelProvider.notifier);
+    final cameraState = ref.read(cameraViewModelProvider);
+
+    // カメラが初期化されていない場合は何もしない
+    if (cameraState.status == CameraStatus.uninitialized ||
+        cameraState.status == CameraStatus.error) {
+      return;
+    }
+
+    switch (state) {
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+        // カメラリソースを解放
+        viewModel.disposeCamera();
+        break;
+      case AppLifecycleState.resumed:
+        // カメラを再初期化
+        viewModel.initializeCamera();
+        break;
+      default:
+        break;
+    }
   }
 
   Future<void> _initialize() async {
@@ -44,6 +89,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     final isActive =
         cameraState.status == CameraStatus.ready ||
         cameraState.status == CameraStatus.recording;
+    final isRecording = cameraState.status == CameraStatus.recording;
 
     return NativeDeviceOrientationReader(
       builder: (context) {
@@ -74,8 +120,43 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               else
                 const Center(child: CircularProgressIndicator()),
 
+              // グリッドライン
+              if (isActive && cameraState.showGrid)
+                const Positioned.fill(child: GridOverlay()),
+
+              // フォーカスインジケータ
+              if (isActive && cameraState.focusPoint != null)
+                _buildFocusIndicator(cameraState.focusPoint!),
+
+              // 録画タイマー
+              if (isRecording && cameraState.recordingStartTime != null)
+                Positioned(
+                  top: 60,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: RecordingTimer(
+                      startTime: cameraState.recordingStartTime!,
+                    ),
+                  ),
+                ),
+
               // ズームゲージ
               if (isActive) _buildZoomGauge(cameraState, rotationTurns),
+
+              // 滑走者選択カルーセル（録画中以外）
+              if (isActive && !isRecording)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom:
+                      AppConstants.zoomGaugeBottomPadding +
+                      AppConstants.gaugeHeight +
+                      8,
+                  child: SkierSelector(
+                    selectedSkierId: cameraState.selectedSkierId,
+                  ),
+                ),
 
               // 録画ボタン
               _buildRecordButton(cameraState),
@@ -83,12 +164,68 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
               // プレビューボタン
               _buildPreviewButton(cameraState),
 
+              // 上部ツールバー（グリッド・設定）
+              if (isActive && !isRecording) _buildTopToolbar(cameraState),
+
+              // 左上：人物一覧画面への遷移ボタン
+              if (isActive && !isRecording)
+                Positioned(
+                  top: 48,
+                  left: 16,
+                  child: _buildToolbarButton(
+                    icon: Icons.people,
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const PersonListScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+              // 左端：人物一覧リスト
+              if (isActive && !isRecording)
+                const Positioned(
+                  top: 100, // 上部のボタン類を避ける
+                  left: 16,
+                  bottom: 160, // 下部UI要素を避ける位置にする
+                  child: PersonListSideBar(),
+                ),
+
+              // 右上：選択された人物のポップアップ
+              if (isActive && !isRecording)
+                const Positioned(
+                  top: 48,
+                  right: 72, // 上部ツールバーの左側に配置
+                  child: SelectedPersonsTopRight(),
+                ),
+
               // エラー表示
               if (cameraState.errorMessage != null)
                 Center(
-                  child: Text(
-                    "エラー: ${cameraState.errorMessage}",
-                    style: const TextStyle(color: Colors.red),
+                  child: Container(
+                    margin: const EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          "エラー: ${cameraState.errorMessage}",
+                          style: const TextStyle(color: Colors.red),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _initialize,
+                          child: const Text('再試行'),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],
@@ -98,15 +235,71 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     );
   }
 
-  /// カメラプレビューウィジェット（ズームジェスチャー付き）
-  ///
-  /// プレビューは回転させず、常にフルスクリーンで表示する。
-  /// （一般的なスマホカメラと同じ挙動）
+  /// カメラプレビューウィジェット（ズーム・フォーカスジェスチャー付き）
   Widget _buildCameraPreview(CameraState cameraState) {
     return GestureDetector(
-      onHorizontalDragUpdate: (details) =>
-          _handleZoomDrag(details, cameraState),
+      // ピンチズーム
+      onScaleStart: (details) {
+        _baseZoom = cameraState.currentZoomLevel;
+      },
+      onScaleUpdate: (details) {
+        if (details.pointerCount >= 2) {
+          // ピンチズーム
+          final newZoom = _baseZoom * details.scale;
+          ref.read(cameraViewModelProvider.notifier).setZoomLevel(newZoom);
+        } else {
+          // 水平スワイプズーム（1本指）
+          _handleZoomDrag(
+            DragUpdateDetails(
+              globalPosition: details.focalPoint,
+              delta: details.focalPointDelta,
+            ),
+            cameraState,
+          );
+        }
+      },
+      // タップでフォーカス
+      onTapUp: (details) {
+        _handleTapFocus(details, cameraState);
+      },
       child: Center(child: CameraPreview(cameraState.controller!)),
+    );
+  }
+
+  /// タップフォーカスを処理する
+  void _handleTapFocus(TapUpDetails details, CameraState cameraState) {
+    final screenSize = MediaQuery.of(context).size;
+    final tapPosition = details.localPosition;
+
+    // 画面座標を正規化座標（0.0〜1.0）に変換
+    final normalizedPoint = Offset(
+      tapPosition.dx / screenSize.width,
+      tapPosition.dy / screenSize.height,
+    );
+
+    ref.read(cameraViewModelProvider.notifier).setFocusPoint(normalizedPoint);
+  }
+
+  /// フォーカスインジケータを描画する
+  Widget _buildFocusIndicator(Offset focusPoint) {
+    final screenSize = MediaQuery.of(context).size;
+    return Positioned(
+      left: focusPoint.dx * screenSize.width - 30,
+      top: focusPoint.dy * screenSize.height - 30,
+      child: IgnorePointer(
+        child: AnimatedOpacity(
+          opacity: 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.yellow, width: 2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -191,6 +384,82 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         padding: const EdgeInsets.all(AppConstants.previewButtonPadding),
         child: VideoPreviewButton(videoPath: cameraState.lastVideoPath),
       ),
+    );
+  }
+
+  /// 上部ツールバー（グリッドトグル、解像度設定）
+  Widget _buildTopToolbar(CameraState cameraState) {
+    return Positioned(
+      top: 48,
+      right: 16,
+      child: Column(
+        children: [
+          // グリッドトグルボタン
+          _buildToolbarButton(
+            icon: cameraState.showGrid ? Icons.grid_on : Icons.grid_off,
+            onPressed: () {
+              ref.read(cameraViewModelProvider.notifier).toggleGrid();
+            },
+          ),
+          const SizedBox(height: 12),
+          // 解像度設定ボタン
+          _buildToolbarButton(
+            icon: Icons.settings,
+            onPressed: () => _showResolutionDialog(cameraState),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildToolbarButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(100),
+        shape: BoxShape.circle,
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 24),
+        onPressed: onPressed,
+      ),
+    );
+  }
+
+  /// 解像度設定ダイアログを表示する
+  void _showResolutionDialog(CameraState cameraState) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('解像度設定'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ResolutionPreset.values.map((preset) {
+              final isSelected = preset == cameraState.resolutionPreset;
+              return ListTile(
+                title: Text(SettingsService.resolutionLabel(preset)),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? Theme.of(dialogContext).primaryColor
+                      : null,
+                ),
+                onTap: () {
+                  ref
+                      .read(cameraViewModelProvider.notifier)
+                      .setResolutionPreset(preset);
+                  Navigator.of(dialogContext).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
     );
   }
 }
