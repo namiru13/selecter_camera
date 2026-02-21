@@ -244,6 +244,7 @@ class CameraViewModel extends Notifier<CameraState> {
         final success = await ffmpegService.processVideoWithThumbnail(
           sourceVideoPath: videoPath,
           thumbnailImagePath: thumbnailImagePath,
+          thumbnailDuration: 0.1, // サムネイル画像の表示時間を0.1秒にする
           outputPath: outputPath,
         );
 
