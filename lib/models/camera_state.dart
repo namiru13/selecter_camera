@@ -1,7 +1,7 @@
 /// カメラの状態を表すモデルクラス
 ///
 /// カメラの初期化状態、録画状態、ズームレベル、フォーカスポイント、
-/// グリッド表示、録画開始時刻、選択滑走者IDなどを管理する。
+/// グリッド表示、録画開始時刻、選択人物IDなどを管理する。
 library;
 
 import 'package:camera/camera.dart';
@@ -29,17 +29,14 @@ class CameraState {
   /// 録画開始時刻（録画中のみ非null）
   final DateTime? recordingStartTime;
 
-  /// 選択された滑走者ID（null = 未選択）
-  final String? selectedSkierId;
-
-  /// 選択された人物IDのセット（空 = 誰も選択されていない）
-  final Set<String> selectedPersonIds;
+  /// 選択された人物ID（null = 未選択）
+  final String? selectedPersonId;
 
   /// 現在の解像度プリセット
   final ResolutionPreset resolutionPreset;
 
   /// 録画終了時に滑走者選択確認を表示するかどうか
-  final bool showSkierSelectionConfirmation;
+  final bool showPersonSelectionConfirmation;
 
   /// 録画直後の未処理動画パス（保存処理前）
   final String? tempVideoPath;
@@ -58,10 +55,9 @@ class CameraState {
     this.focusPoint,
     this.showGrid = false,
     this.recordingStartTime,
-    this.selectedSkierId,
-    this.selectedPersonIds = const {},
+    this.selectedPersonId,
     this.resolutionPreset = ResolutionPreset.high,
-    this.showSkierSelectionConfirmation = true,
+    this.showPersonSelectionConfirmation = true,
     this.tempVideoPath,
     this.isSaving = false,
   });
@@ -79,11 +75,10 @@ class CameraState {
     bool? showGrid,
     DateTime? recordingStartTime,
     bool? clearRecordingStartTime,
-    String? selectedSkierId,
-    bool? clearSelectedSkierId,
-    Set<String>? selectedPersonIds,
+    String? selectedPersonId,
+    bool? clearSelectedPersonId,
     ResolutionPreset? resolutionPreset,
-    bool? showSkierSelectionConfirmation,
+    bool? showPersonSelectionConfirmation,
     String? tempVideoPath,
     bool? clearTempVideoPath,
     bool? isSaving,
@@ -103,13 +98,13 @@ class CameraState {
       recordingStartTime: clearRecordingStartTime == true
           ? null
           : (recordingStartTime ?? this.recordingStartTime),
-      selectedSkierId: clearSelectedSkierId == true
+      selectedPersonId: clearSelectedPersonId == true
           ? null
-          : (selectedSkierId ?? this.selectedSkierId),
-      selectedPersonIds: selectedPersonIds ?? this.selectedPersonIds,
+          : (selectedPersonId ?? this.selectedPersonId),
       resolutionPreset: resolutionPreset ?? this.resolutionPreset,
-      showSkierSelectionConfirmation:
-          showSkierSelectionConfirmation ?? this.showSkierSelectionConfirmation,
+      showPersonSelectionConfirmation:
+          showPersonSelectionConfirmation ??
+          this.showPersonSelectionConfirmation,
       tempVideoPath: clearTempVideoPath == true
           ? null
           : (tempVideoPath ?? this.tempVideoPath),

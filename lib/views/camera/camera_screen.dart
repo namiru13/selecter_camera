@@ -2,7 +2,7 @@
 ///
 /// カメラプレビュー、録画ボタン、ズームゲージ、
 /// プレビューボタン、グリッドライン、フォーカスインジケータ、
-/// 録画タイマー、解像度設定、滑走者選択カルーセルを含むメイン撮影画面。
+/// 録画タイマー、解像度設定、人物選択サイドバーを含むメイン撮影画面。
 /// 画面はポートレートに固定し、UI要素のみデバイスの向きに
 /// 合わせてアニメーション付きで回転する（一般的なスマホカメラと同じ挙動）。
 library;
@@ -18,7 +18,6 @@ import '../../viewmodels/zoom_controller.dart';
 import 'widgets/arc_zoom_gauge.dart';
 import 'widgets/grid_overlay.dart';
 import 'widgets/recording_timer.dart';
-import 'widgets/skier_selector.dart';
 import 'widgets/video_preview_button.dart';
 import 'widgets/person_selector_popup.dart';
 import '../person/person_list_screen.dart';
@@ -155,20 +154,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               // ズームゲージ
               if (isActive && !cameraState.isSaving)
                 _buildZoomGauge(cameraState, rotationTurns),
-
-              // 滑走者選択カルーセル（録画中以外）
-              if (isActive && !isRecording && !cameraState.isSaving)
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom:
-                      AppConstants.zoomGaugeBottomPadding +
-                      AppConstants.gaugeHeight +
-                      8,
-                  child: SkierSelector(
-                    selectedSkierId: cameraState.selectedSkierId,
-                  ),
-                ),
 
               // 録画ボタン
               if (!cameraState.isSaving) _buildRecordButton(cameraState),
@@ -382,8 +367,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
                   // エラーがなく、設定がONの場合に確認ダイアログを表示
                   if (currentState.status != CameraStatus.error) {
-                    if (currentState.showSkierSelectionConfirmation) {
-                      _showSkierSelectionDialog(context);
+                    if (currentState.showPersonSelectionConfirmation) {
+                      _showPersonSelectionDialog(context);
                     } else {
                       // 確認なしの場合はすぐに保存処理へ移行
                       ref
@@ -454,8 +439,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     );
   }
 
-  /// 録画終了後の滑走者確認ダイアログを表示する
-  void _showSkierSelectionDialog(BuildContext context) {
+  /// 録画終了後の人物確認ダイアログを表示する
+  void _showPersonSelectionDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false, // 外側タップで閉じさせない
@@ -471,13 +456,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 style: TextStyle(color: Colors.white70),
               ),
               const SizedBox(height: 16),
-              Consumer(
-                builder: (context, ref, child) {
-                  final cameraState = ref.watch(cameraViewModelProvider);
-                  return SkierSelector(
-                    selectedSkierId: cameraState.selectedSkierId,
-                  );
-                },
+              SizedBox(
+                width: double.maxFinite,
+                height: 300,
+                child: PersonListSideBar(),
               ),
             ],
           ),

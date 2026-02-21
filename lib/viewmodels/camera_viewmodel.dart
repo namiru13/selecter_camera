@@ -14,7 +14,7 @@ import '../services/camera_service.dart';
 import '../services/settings_service.dart';
 import '../services/video_save_service.dart';
 import '../services/ffmpeg_service.dart';
-import '../viewmodels/skiers_viewmodel.dart';
+import '../viewmodels/person_viewmodel.dart';
 
 /// カメラのViewModel（Riverpod Notifier）
 class CameraViewModel extends Notifier<CameraState> {
@@ -42,8 +42,8 @@ class CameraViewModel extends Notifier<CameraState> {
       // 保存された解像度設定を読み込む
       final resolution = await _settingsService.getResolutionPreset();
       final showGrid = await _settingsService.getShowGrid();
-      final showSkierSelectionConfirmation = await _settingsService
-          .getShowSkierSelectionOnStop();
+      final showPersonSelectionConfirmation = await _settingsService
+          .getShowPersonSelectionOnStop();
 
       await _cameraService.initialize(resolutionPreset: resolution);
       if (_cameraService.controller != null) {
@@ -58,7 +58,7 @@ class CameraViewModel extends Notifier<CameraState> {
           currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
           resolutionPreset: resolution,
           showGrid: showGrid,
-          showSkierSelectionConfirmation: showSkierSelectionConfirmation,
+          showPersonSelectionConfirmation: showPersonSelectionConfirmation,
         );
 
         // 初期ズームを実機に反映
@@ -118,11 +118,11 @@ class CameraViewModel extends Notifier<CameraState> {
     await _settingsService.setShowGrid(newShow);
   }
 
-  /// 録画終了後の滑走者確認表示を切り替える
-  Future<void> toggleShowSkierSelectionConfirmation() async {
-    final newShow = !state.showSkierSelectionConfirmation;
-    state = state.copyWith(showSkierSelectionConfirmation: newShow);
-    await _settingsService.setShowSkierSelectionOnStop(newShow);
+  /// 録画終了後の人物選択確認表示を切り替える
+  Future<void> toggleShowPersonSelectionConfirmation() async {
+    final newShow = !state.showPersonSelectionConfirmation;
+    state = state.copyWith(showPersonSelectionConfirmation: newShow);
+    await _settingsService.setShowPersonSelectionOnStop(newShow);
   }
 
   /// 解像度を変更する
@@ -139,24 +139,18 @@ class CameraViewModel extends Notifier<CameraState> {
     await initializeCamera();
   }
 
-  /// 選択された滑走者IDを設定する
-  void setSelectedSkierId(String? skierId) {
-    if (skierId == null) {
-      state = state.copyWith(clearSelectedSkierId: true);
+  /// 選択された人物IDを設定する
+  void setSelectedPersonId(String? personId) {
+    if (personId == null) {
+      state = state.copyWith(clearSelectedPersonId: true);
     } else {
-      state = state.copyWith(selectedSkierId: skierId);
+      // 同じ人物をもう一度タップした場合は選択解除
+      if (state.selectedPersonId == personId) {
+        state = state.copyWith(clearSelectedPersonId: true);
+      } else {
+        state = state.copyWith(selectedPersonId: personId);
+      }
     }
-  }
-
-  /// 人物の選択状態を切り替える（複数選択対応）
-  void togglePersonSelection(String personId) {
-    final currentSelected = Set<String>.from(state.selectedPersonIds);
-    if (currentSelected.contains(personId)) {
-      currentSelected.remove(personId);
-    } else {
-      currentSelected.add(personId);
-    }
-    state = state.copyWith(selectedPersonIds: currentSelected);
   }
 
   /// 録画を開始する
@@ -221,19 +215,22 @@ class CameraViewModel extends Notifier<CameraState> {
       final ffmpegService = FFmpegService();
       String? thumbnailImagePath;
 
-      // 選択されている滑走者がいれば情報を取得
-      final skierId = state.selectedSkierId;
-      if (skierId != null) {
-        final skiers = ref.read(skierViewModelProvider);
-        try {
-          final skier = skiers.firstWhere((s) => s.id == skierId);
-          // サムネイル画像の生成
-          thumbnailImagePath = await ffmpegService.generateThumbnailImage(
-            skierName: skier.name,
-            skierImagePath: skier.referenceImagePath,
-          );
-        } catch (_) {
-          debugPrint('選択された滑走者ID ($skierId) に該当するデータが見つかりません');
+      // 選択されている人物がいれば情報を取得
+      final personId = state.selectedPersonId;
+      if (personId != null) {
+        final personsAsync = ref.read(personViewModelProvider);
+        final persons = personsAsync.value;
+        if (persons != null) {
+          try {
+            final person = persons.firstWhere((p) => p.id == personId);
+            // サムネイル画像の生成
+            thumbnailImagePath = await ffmpegService.generateThumbnailImage(
+              personName: person.name,
+              personImagePath: person.thumbnailPath,
+            );
+          } catch (_) {
+            debugPrint('選択された人物ID ($personId) に該当するデータが見つかりません');
+          }
         }
       }
 

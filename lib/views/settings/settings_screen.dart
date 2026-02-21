@@ -57,9 +57,9 @@ class SettingsScreen extends ConsumerWidget {
               '録画終了後に滑走者を確認する',
               style: TextStyle(color: Colors.white),
             ),
-            value: cameraState.showSkierSelectionConfirmation,
+            value: cameraState.showPersonSelectionConfirmation,
             onChanged: (bool value) {
-              viewModel.toggleShowSkierSelectionConfirmation();
+              viewModel.toggleShowPersonSelectionConfirmation();
             },
             activeColor: Theme.of(context).primaryColor,
           ),

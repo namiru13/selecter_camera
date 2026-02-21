@@ -26,6 +26,12 @@ class FakeSettingsService extends SettingsService {
 
   @override
   Future<void> setShowGrid(bool show) async {}
+
+  @override
+  Future<bool> getShowPersonSelectionOnStop() async => true;
+
+  @override
+  Future<void> setShowPersonSelectionOnStop(bool show) async {}
 }
 
 void main() {

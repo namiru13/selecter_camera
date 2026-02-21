@@ -1,7 +1,7 @@
 /// FFmpeg動画処理サービス
 ///
 /// FFmpegを使用したサムネイル画像生成や動画結合処理を提供する。
-/// 滑走者の名前と画像を含むサムネイル動画を生成し、
+/// 人物の名前と画像を含むサムネイル動画を生成し、
 /// メイン動画と結合する機能を持つ。
 library;
 
@@ -16,14 +16,14 @@ import 'package:path_provider/path_provider.dart';
 class FFmpegService {
   /// サムネイル画像を生成する（Canvas描画）
   ///
-  /// 滑走者の名前と画像を含むサムネイル画像をPNG形式で生成する。
-  /// [skierName] 滑走者名（null の場合は名前を表示しない）
-  /// [skierImagePath] 滑走者の参照画像パス（null の場合はデフォルト画像を使用）
+  /// 人物の名前と画像を含むサムネイル画像をPNG形式で生成する。
+  /// [personName] 人物名（null の場合は名前を表示しない）
+  /// [personImagePath] 人物の参照画像パス（null の場合はデフォルト画像を使用）
   /// [width] 出力画像の幅（デフォルト: 1280）
   /// [height] 出力画像の高さ（デフォルト: 720）
   Future<String?> generateThumbnailImage({
-    String? skierName,
-    String? skierImagePath,
+    String? personName,
+    String? personImagePath,
     int width = 1280,
     int height = 720,
   }) async {
@@ -41,27 +41,27 @@ class FFmpegService {
         Paint()..color = const Color(0xFF1A1A1A),
       );
 
-      // skierImagePath があれば画像を描画
+      // personImagePath があれば画像を描画
       double textStartY = (height / 2) - 40;
-      if (skierImagePath != null) {
+      if (personImagePath != null) {
         try {
-          final file = File(skierImagePath);
+          final file = File(personImagePath);
           final bytes = await file.readAsBytes();
           final codec = await ui.instantiateImageCodec(bytes);
           final frameInfo = await codec.getNextFrame();
-          final skierImage = frameInfo.image;
+          final personImage = frameInfo.image;
 
           // 画像を縮小・中央上部に配置
           final imgWidth = 400.0;
-          final imgHeight = 400.0 * (skierImage.height / skierImage.width);
+          final imgHeight = 400.0 * (personImage.height / personImage.width);
           final imgX = (width - imgWidth) / 2;
           final imgY = (height / 2) - imgHeight + 60; // 高さ調整
 
           final srcRect = Rect.fromLTWH(
             0,
             0,
-            skierImage.width.toDouble(),
-            skierImage.height.toDouble(),
+            personImage.width.toDouble(),
+            personImage.height.toDouble(),
           );
           final dstRect = Rect.fromLTWH(imgX, imgY, imgWidth, imgHeight);
 
@@ -72,7 +72,7 @@ class FFmpegService {
             const Radius.circular(20),
           );
           canvas.clipRRect(rRect);
-          canvas.drawImageRect(skierImage, srcRect, dstRect, Paint());
+          canvas.drawImageRect(personImage, srcRect, dstRect, Paint());
           canvas.restore();
 
           textStartY = imgY + imgHeight + 40; // 画像の下にテキストを配置
@@ -84,7 +84,7 @@ class FFmpegService {
       // 中央にテキスト情報を描画
       final textPainter = TextPainter(
         text: TextSpan(
-          text: skierName ?? 'Unknown Skier',
+          text: personName ?? '不明な人物',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 60,

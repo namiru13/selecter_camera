@@ -14,8 +14,8 @@ final settingsServiceProvider = Provider((ref) => SettingsService());
 class SettingsService {
   static const String _keyResolution = 'resolution_preset';
   static const String _keyShowGrid = 'show_grid';
-  static const String _keyShowSkierSelectionOnStop =
-      'show_skier_selection_on_stop';
+  static const String _keyShowPersonSelectionOnStop =
+      'show_person_selection_on_stop';
 
   /// 保存された解像度設定を取得する
   Future<ResolutionPreset> getResolutionPreset() async {
@@ -46,15 +46,15 @@ class SettingsService {
   }
 
   /// 撮影終了後の滑走者確認表示設定を取得する
-  Future<bool> getShowSkierSelectionOnStop() async {
+  Future<bool> getShowPersonSelectionOnStop() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_keyShowSkierSelectionOnStop) ?? true;
+    return prefs.getBool(_keyShowPersonSelectionOnStop) ?? true;
   }
 
   /// 撮影終了後の滑走者確認表示設定を保存する
-  Future<void> setShowSkierSelectionOnStop(bool show) async {
+  Future<void> setShowPersonSelectionOnStop(bool show) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyShowSkierSelectionOnStop, show);
+    await prefs.setBool(_keyShowPersonSelectionOnStop, show);
   }
 
   /// 解像度プリセットの表示名を返す

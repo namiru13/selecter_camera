@@ -12,9 +12,9 @@ class PersonListSideBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final personsAsync = ref.watch(personViewModelProvider);
-    final selectedPersonIds = ref
+    final selectedPersonId = ref
         .watch(cameraViewModelProvider)
-        .selectedPersonIds;
+        .selectedPersonId;
 
     return personsAsync.when(
       data: (persons) {
@@ -39,13 +39,13 @@ class PersonListSideBar extends ConsumerWidget {
             itemCount: persons.length,
             itemBuilder: (context, index) {
               final person = persons[index];
-              final isSelected = selectedPersonIds.contains(person.id);
+              final isSelected = selectedPersonId == person.id;
 
               return InkWell(
                 onTap: () {
                   ref
                       .read(cameraViewModelProvider.notifier)
-                      .togglePersonSelection(person.id);
+                      .setSelectedPersonId(isSelected ? null : person.id);
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -120,76 +120,66 @@ class SelectedPersonsTopRight extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cameraState = ref.watch(cameraViewModelProvider);
     final personsAsync = ref.watch(personViewModelProvider);
-    final selectedPersonIds = cameraState.selectedPersonIds;
+    final selectedPersonId = cameraState.selectedPersonId;
 
-    if (selectedPersonIds.isEmpty) {
+    if (selectedPersonId == null) {
       return const SizedBox.shrink();
     }
 
     return personsAsync.when(
       data: (persons) {
-        // 選択された人物のみを抽出
-        final selectedPersons = persons
-            .where((p) => selectedPersonIds.contains(p.id))
+        // 選択された人物を取得
+        final selectedPerson = persons
+            .where((p) => p.id == selectedPersonId)
             .toList();
 
-        return Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: selectedPersons.map((person) {
-            return GestureDetector(
-              onTap: () {
-                // タップで選択解除
-                ref
-                    .read(cameraViewModelProvider.notifier)
-                    .togglePersonSelection(person.id);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+        if (selectedPerson.isEmpty) return const SizedBox.shrink();
+
+        final person = selectedPerson.first;
+
+        return GestureDetector(
+          onTap: () {
+            // タップで選択解除
+            ref
+                .read(cameraViewModelProvider.notifier)
+                .setSelectedPersonId(null);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).primaryColor,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundImage: person.thumbnailPath != null
+                      ? FileImage(File(person.thumbnailPath!))
+                      : null,
+                  child: person.thumbnailPath == null
+                      ? const Icon(Icons.person, color: Colors.white, size: 16)
+                      : null,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Theme.of(context).primaryColor,
-                    width: 2,
+                const SizedBox(width: 6),
+                Text(
+                  person.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircleAvatar(
-                      radius: 14,
-                      backgroundImage: person.thumbnailPath != null
-                          ? FileImage(File(person.thumbnailPath!))
-                          : null,
-                      child: person.thumbnailPath == null
-                          ? const Icon(
-                              Icons.person,
-                              color: Colors.white,
-                              size: 16,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      person.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.close, color: Colors.white70, size: 14),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+                const SizedBox(width: 4),
+                const Icon(Icons.close, color: Colors.white70, size: 14),
+              ],
+            ),
+          ),
         );
       },
       loading: () => const SizedBox.shrink(),
