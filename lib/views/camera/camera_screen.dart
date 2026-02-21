@@ -13,7 +13,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import '../../core/constants/app_constants.dart';
 import '../../models/camera_state.dart';
-import '../../services/settings_service.dart';
 import '../../viewmodels/camera_viewmodel.dart';
 import '../../viewmodels/zoom_controller.dart';
 import 'widgets/arc_zoom_gauge.dart';
@@ -23,6 +22,7 @@ import 'widgets/skier_selector.dart';
 import 'widgets/video_preview_button.dart';
 import 'widgets/person_selector_popup.dart';
 import '../person/person_list_screen.dart';
+import '../settings/settings_screen.dart';
 
 /// カメラ撮影画面ウィジェット
 class CameraScreen extends ConsumerStatefulWidget {
@@ -387,25 +387,21 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     );
   }
 
-  /// 上部ツールバー（グリッドトグル、解像度設定）
+  /// 上部ツールバー（設定画面への遷移）
   Widget _buildTopToolbar(CameraState cameraState) {
     return Positioned(
       top: 48,
       right: 16,
       child: Column(
         children: [
-          // グリッドトグルボタン
-          _buildToolbarButton(
-            icon: cameraState.showGrid ? Icons.grid_on : Icons.grid_off,
-            onPressed: () {
-              ref.read(cameraViewModelProvider.notifier).toggleGrid();
-            },
-          ),
-          const SizedBox(height: 12),
-          // 解像度設定ボタン
+          // 設定ボタン
           _buildToolbarButton(
             icon: Icons.settings,
-            onPressed: () => _showResolutionDialog(cameraState),
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            },
           ),
         ],
       ),
@@ -425,41 +421,6 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         icon: Icon(icon, color: Colors.white, size: 24),
         onPressed: onPressed,
       ),
-    );
-  }
-
-  /// 解像度設定ダイアログを表示する
-  void _showResolutionDialog(CameraState cameraState) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('解像度設定'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: ResolutionPreset.values.map((preset) {
-              final isSelected = preset == cameraState.resolutionPreset;
-              return ListTile(
-                title: Text(SettingsService.resolutionLabel(preset)),
-                leading: Icon(
-                  isSelected
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_unchecked,
-                  color: isSelected
-                      ? Theme.of(dialogContext).primaryColor
-                      : null,
-                ),
-                onTap: () {
-                  ref
-                      .read(cameraViewModelProvider.notifier)
-                      .setResolutionPreset(preset);
-                  Navigator.of(dialogContext).pop();
-                },
-              );
-            }).toList(),
-          ),
-        );
-      },
     );
   }
 }
