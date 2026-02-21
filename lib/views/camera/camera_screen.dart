@@ -358,9 +358,20 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
           child: FittedBox(
             child: FloatingActionButton.large(
               backgroundColor: isRecording ? Colors.red : Colors.white,
-              onPressed: () {
+              onPressed: () async {
                 if (isRecording) {
-                  ref.read(cameraViewModelProvider.notifier).stopRecording();
+                  await ref
+                      .read(cameraViewModelProvider.notifier)
+                      .stopRecording();
+
+                  if (!mounted) return;
+                  final currentState = ref.read(cameraViewModelProvider);
+
+                  // エラーがなく、設定がONの場合に確認ダイアログを表示
+                  if (currentState.status != CameraStatus.error &&
+                      currentState.showSkierSelectionConfirmation) {
+                    _showSkierSelectionDialog(context);
+                  }
                 } else {
                   ref.read(cameraViewModelProvider.notifier).startRecording();
                 }
@@ -421,6 +432,46 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         icon: Icon(icon, color: Colors.white, size: 24),
         onPressed: onPressed,
       ),
+    );
+  }
+
+  /// 録画終了後の滑走者確認ダイアログを表示する
+  void _showSkierSelectionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 外側タップで閉じさせない
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('滑走者の確認', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '撮影した滑走者を選択してください',
+                style: TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              Consumer(
+                builder: (context, ref, child) {
+                  final cameraState = ref.watch(cameraViewModelProvider);
+                  return SkierSelector(
+                    selectedSkierId: cameraState.selectedSkierId,
+                  );
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

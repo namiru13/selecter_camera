@@ -51,6 +51,19 @@ class SettingsScreen extends ConsumerWidget {
             activeColor: Theme.of(context).primaryColor,
           ),
           const Divider(color: Colors.white24, height: 1),
+          // 録画終了後の滑走者確認表示設定
+          SwitchListTile(
+            title: const Text(
+              '録画終了後に滑走者を確認する',
+              style: TextStyle(color: Colors.white),
+            ),
+            value: cameraState.showSkierSelectionConfirmation,
+            onChanged: (bool value) {
+              viewModel.toggleShowSkierSelectionConfirmation();
+            },
+            activeColor: Theme.of(context).primaryColor,
+          ),
+          const Divider(color: Colors.white24, height: 1),
         ],
       ),
     );

@@ -40,6 +40,8 @@ class CameraViewModel extends Notifier<CameraState> {
       // 保存された解像度設定を読み込む
       final resolution = await _settingsService.getResolutionPreset();
       final showGrid = await _settingsService.getShowGrid();
+      final showSkierSelectionConfirmation = await _settingsService
+          .getShowSkierSelectionOnStop();
 
       await _cameraService.initialize(resolutionPreset: resolution);
       if (_cameraService.controller != null) {
@@ -54,6 +56,7 @@ class CameraViewModel extends Notifier<CameraState> {
           currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
           resolutionPreset: resolution,
           showGrid: showGrid,
+          showSkierSelectionConfirmation: showSkierSelectionConfirmation,
         );
 
         // 初期ズームを実機に反映
@@ -111,6 +114,13 @@ class CameraViewModel extends Notifier<CameraState> {
     final newShow = !state.showGrid;
     state = state.copyWith(showGrid: newShow);
     await _settingsService.setShowGrid(newShow);
+  }
+
+  /// 録画終了後の滑走者確認表示を切り替える
+  Future<void> toggleShowSkierSelectionConfirmation() async {
+    final newShow = !state.showSkierSelectionConfirmation;
+    state = state.copyWith(showSkierSelectionConfirmation: newShow);
+    await _settingsService.setShowSkierSelectionOnStop(newShow);
   }
 
   /// 解像度を変更する

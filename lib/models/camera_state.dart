@@ -38,6 +38,9 @@ class CameraState {
   /// 現在の解像度プリセット
   final ResolutionPreset resolutionPreset;
 
+  /// 録画終了時に滑走者選択確認を表示するかどうか
+  final bool showSkierSelectionConfirmation;
+
   CameraState({
     this.status = CameraStatus.uninitialized,
     this.controller,
@@ -52,6 +55,7 @@ class CameraState {
     this.selectedSkierId,
     this.selectedPersonIds = const {},
     this.resolutionPreset = ResolutionPreset.high,
+    this.showSkierSelectionConfirmation = true,
   });
 
   CameraState copyWith({
@@ -71,6 +75,7 @@ class CameraState {
     bool? clearSelectedSkierId,
     Set<String>? selectedPersonIds,
     ResolutionPreset? resolutionPreset,
+    bool? showSkierSelectionConfirmation,
   }) {
     return CameraState(
       status: status ?? this.status,
@@ -92,6 +97,8 @@ class CameraState {
           : (selectedSkierId ?? this.selectedSkierId),
       selectedPersonIds: selectedPersonIds ?? this.selectedPersonIds,
       resolutionPreset: resolutionPreset ?? this.resolutionPreset,
+      showSkierSelectionConfirmation:
+          showSkierSelectionConfirmation ?? this.showSkierSelectionConfirmation,
     );
   }
 }
