@@ -2,12 +2,20 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:native_device_orientation/native_device_orientation.dart';
 import '../../../viewmodels/camera_viewmodel.dart';
 import '../../../viewmodels/person_viewmodel.dart';
 
 /// 画面左端に配置される人物一覧リスト
 class PersonListSideBar extends ConsumerWidget {
-  const PersonListSideBar({super.key});
+  final NativeDeviceOrientation orientation;
+  final double rotationTurns;
+
+  const PersonListSideBar({
+    super.key,
+    this.orientation = NativeDeviceOrientation.portraitUp,
+    this.rotationTurns = 0.0,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -20,9 +28,14 @@ class PersonListSideBar extends ConsumerWidget {
       data: (persons) {
         if (persons.isEmpty) return const SizedBox.shrink();
 
+        final isLandscape =
+            orientation == NativeDeviceOrientation.landscapeLeft ||
+            orientation == NativeDeviceOrientation.landscapeRight;
+
         return Container(
-          width: 80,
-          margin: const EdgeInsets.only(top: 8, bottom: 8),
+          width: isLandscape ? null : 80,
+          height: isLandscape ? 80 : null,
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.3), // 30%透過の白色
             borderRadius: BorderRadius.circular(24), // 丸みを強くして通知バー風に
@@ -35,7 +48,11 @@ class PersonListSideBar extends ConsumerWidget {
             ],
           ),
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            scrollDirection: isLandscape ? Axis.horizontal : Axis.vertical,
+            padding: EdgeInsets.symmetric(
+              vertical: isLandscape ? 4 : 8,
+              horizontal: isLandscape ? 8 : 4,
+            ),
             itemCount: persons.length,
             itemBuilder: (context, index) {
               final person = persons[index];
@@ -48,57 +65,62 @@ class PersonListSideBar extends ConsumerWidget {
                       .setSelectedPersonId(isSelected ? null : person.id);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 4,
+                  padding: EdgeInsets.symmetric(
+                    vertical: isLandscape ? 4 : 8,
+                    horizontal: isLandscape ? 8 : 4,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        decoration: isSelected
-                            ? BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Theme.of(context).primaryColor,
-                                  width: 3,
-                                ),
-                              )
-                            : null,
-                        child: CircleAvatar(
-                          radius: 20,
-                          backgroundImage: person.thumbnailPath != null
-                              ? FileImage(File(person.thumbnailPath!))
+                  child: AnimatedRotation(
+                    turns: rotationTurns,
+                    duration: const Duration(milliseconds: 300),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          decoration: isSelected
+                              ? BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).primaryColor,
+                                    width: 3,
+                                  ),
+                                )
                               : null,
-                          child: person.thumbnailPath == null
-                              ? const Icon(Icons.person, color: Colors.white)
-                              : null,
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundImage: person.thumbnailPath != null
+                                ? FileImage(File(person.thumbnailPath!))
+                                : null,
+                            child: person.thumbnailPath == null
+                                ? const Icon(Icons.person, color: Colors.white)
+                                : null,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        person.name,
-                        style: TextStyle(
-                          color: isSelected
-                              ? Theme.of(context).primaryColor
-                              : Colors.white,
-                          fontSize: 12,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.w600,
-                          shadows: const [
-                            Shadow(
-                              color: Colors.black54,
-                              blurRadius: 2,
-                              offset: Offset(1, 1),
-                            ),
-                          ],
+                        const SizedBox(height: 4),
+                        Text(
+                          person.name,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Theme.of(context).primaryColor
+                                : Colors.white,
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 2,
+                                offset: Offset(1, 1),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -114,7 +136,9 @@ class PersonListSideBar extends ConsumerWidget {
 
 /// 画面右上に配置される、選択された人物のポップアップ
 class SelectedPersonsTopRight extends ConsumerWidget {
-  const SelectedPersonsTopRight({super.key});
+  final double rotationTurns;
+
+  const SelectedPersonsTopRight({super.key, this.rotationTurns = 0.0});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -144,40 +168,48 @@ class SelectedPersonsTopRight extends ConsumerWidget {
                 .read(cameraViewModelProvider.notifier)
                 .setSelectedPersonId(null);
           },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Theme.of(context).primaryColor,
-                width: 2,
+          child: AnimatedRotation(
+            turns: rotationTurns,
+            duration: const Duration(milliseconds: 300),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Theme.of(context).primaryColor,
+                  width: 2,
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundImage: person.thumbnailPath != null
-                      ? FileImage(File(person.thumbnailPath!))
-                      : null,
-                  child: person.thumbnailPath == null
-                      ? const Icon(Icons.person, color: Colors.white, size: 16)
-                      : null,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  person.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundImage: person.thumbnailPath != null
+                        ? FileImage(File(person.thumbnailPath!))
+                        : null,
+                    child: person.thumbnailPath == null
+                        ? const Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 16,
+                          )
+                        : null,
                   ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.close, color: Colors.white70, size: 14),
-              ],
+                  const SizedBox(width: 6),
+                  Text(
+                    person.name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.close, color: Colors.white70, size: 14),
+                ],
+              ),
             ),
           ),
         );

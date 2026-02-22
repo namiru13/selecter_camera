@@ -184,19 +184,55 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
               // 左端：人物一覧リスト
               if (isActive && !cameraState.isSaving)
-                const Positioned(
-                  top: 100, // 上部のボタン類を避ける
-                  left: 16,
-                  bottom: 160, // 下部UI要素を避ける位置にする
-                  child: PersonListSideBar(),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  top: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? 16
+                      : (orientation == NativeDeviceOrientation.landscapeRight
+                            ? null
+                            : 100),
+                  bottom: orientation == NativeDeviceOrientation.landscapeRight
+                      ? 16
+                      : (orientation == NativeDeviceOrientation.landscapeLeft
+                            ? null
+                            : 160),
+                  left: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? 100
+                      : (orientation == NativeDeviceOrientation.landscapeRight
+                            ? 160
+                            : 16),
+                  right: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? 160
+                      : (orientation == NativeDeviceOrientation.landscapeRight
+                            ? 100
+                            : null),
+                  child: PersonListSideBar(
+                    orientation: orientation,
+                    rotationTurns: rotationTurns,
+                  ),
                 ),
 
               // 右上：選択された人物のポップアップ
               if (isActive && !cameraState.isSaving)
-                const Positioned(
-                  top: 48,
-                  right: 72, // 上部ツールバーの左側に配置
-                  child: SelectedPersonsTopRight(),
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  top: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? null
+                      : (orientation == NativeDeviceOrientation.landscapeRight
+                            ? 72
+                            : 48),
+                  bottom: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? 72
+                      : null,
+                  left: orientation == NativeDeviceOrientation.landscapeRight
+                      ? 48
+                      : null,
+                  right: orientation == NativeDeviceOrientation.landscapeLeft
+                      ? 48
+                      : (orientation == NativeDeviceOrientation.landscapeRight
+                            ? null
+                            : 72),
+                  child: SelectedPersonsTopRight(rotationTurns: rotationTurns),
                 ),
 
               // エラー表示
