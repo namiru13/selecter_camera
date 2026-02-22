@@ -15,12 +15,15 @@ final settingsServiceProvider = Provider((ref) => SettingsService());
 class SettingsService {
   static const String _keyResolution = 'resolution_preset';
   static const String _keyShowGrid = 'show_grid';
+  static const String _keyShowLeveler = 'show_leveler';
   // 古い設定キー（マイグレーション用）
   static const String _keyShowPersonSelectionOnStop =
       'show_person_selection_on_stop';
   // 新しい設定キー
   static const String _keyConfirmPersonSelectionMode =
       'confirm_person_selection_mode';
+  static const String _keyExposureAdjustmentMode = 'exposure_adjustment_mode';
+  static const String _keyExposureOffset = 'exposure_offset';
 
   /// 保存された解像度設定を取得する
   Future<ResolutionPreset> getResolutionPreset() async {
@@ -48,6 +51,18 @@ class SettingsService {
   Future<void> setShowGrid(bool show) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowGrid, show);
+  }
+
+  /// 水準器表示設定を取得する
+  Future<bool> getShowLeveler() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyShowLeveler) ?? false;
+  }
+
+  /// 水準器表示設定を保存する
+  Future<void> setShowLeveler(bool show) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowLeveler, show);
   }
 
   /// 撮影終了後の滑走者確認表示モードを取得する
@@ -91,6 +106,36 @@ class SettingsService {
     await prefs.remove(_keyShowPersonSelectionOnStop);
   }
 
+  /// 露出モードを取得する
+  Future<ExposureAdjustmentMode> getExposureAdjustmentMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final index =
+        prefs.getInt(_keyExposureAdjustmentMode) ??
+        ExposureAdjustmentMode.off.index;
+    if (index >= 0 && index < ExposureAdjustmentMode.values.length) {
+      return ExposureAdjustmentMode.values[index];
+    }
+    return ExposureAdjustmentMode.off;
+  }
+
+  /// 露出モードを保存する
+  Future<void> setExposureAdjustmentMode(ExposureAdjustmentMode mode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyExposureAdjustmentMode, mode.index);
+  }
+
+  /// 露出オフセットを取得する
+  Future<double> getExposureOffset() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_keyExposureOffset) ?? 0.0;
+  }
+
+  /// 露出オフセットを保存する
+  Future<void> setExposureOffset(double offset) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyExposureOffset, offset);
+  }
+
   /// 解像度プリセットの表示名を返す
   static String resolutionLabel(ResolutionPreset preset) {
     switch (preset) {
@@ -118,6 +163,18 @@ class SettingsService {
         return '未選択時のみ確認する';
       case ConfirmPersonSelectionMode.never:
         return '確認しない';
+    }
+  }
+
+  /// 露出モードの表示名を返す
+  static String exposureAdjustmentModeLabel(ExposureAdjustmentMode mode) {
+    switch (mode) {
+      case ExposureAdjustmentMode.off:
+        return 'OFF';
+      case ExposureAdjustmentMode.manual:
+        return '手動調整';
+      case ExposureAdjustmentMode.auto:
+        return '自動調整';
     }
   }
 }
