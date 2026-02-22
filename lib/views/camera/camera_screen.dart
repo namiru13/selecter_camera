@@ -118,6 +118,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
             break;
         }
 
+        final screenSize = MediaQuery.of(context).size;
+        final bottomHitAreaHeight = screenSize.height / 3;
+
         return Scaffold(
           backgroundColor: Colors.black,
           body: Stack(
@@ -213,10 +216,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   bottom: orientation == NativeDeviceOrientation.landscapeRight
                       ? 2
                       : (orientation == NativeDeviceOrientation.portraitUp
-                            ? 100
+                            ? bottomHitAreaHeight
                             : (orientation ==
                                       NativeDeviceOrientation.portraitDown
-                                  ? 100
+                                  ? bottomHitAreaHeight
                                   : null)),
                   left:
                       orientation == NativeDeviceOrientation.portraitUp ||

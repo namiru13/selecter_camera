@@ -23,19 +23,15 @@ class ZoomUpdateResult {
 
 /// ズームのスナップロジックを管理するコントローラー
 class ZoomController {
-  DateTime? _snapPauseTime;
+  DateTime? _lastHapticTime;
   double? _lastSnapValue;
 
   final List<double> snapPoints;
   final double snapThreshold;
-  final double snapSpeedThreshold;
-  final int snapPauseDurationMs;
 
   ZoomController({
     this.snapPoints = AppConstants.zoomSnapPoints,
     this.snapThreshold = AppConstants.zoomSnapThreshold,
-    this.snapSpeedThreshold = AppConstants.zoomSnapSpeedThreshold,
-    this.snapPauseDurationMs = AppConstants.zoomSnapPauseDurationMs,
   });
 
   /// ドラッグ入力からズーム値を計算する
@@ -59,25 +55,18 @@ class ZoomController {
     // ドラッグ量からズーム値を計算
     final newZoom = currentZoom - (deltaDx / barWidth) * zoomRange;
 
-    // スナップ一時停止中の場合は更新しない
-    if (_snapPauseTime != null && DateTime.now().isBefore(_snapPauseTime!)) {
-      return ZoomUpdateResult.skip;
-    }
-
-    // 高速ドラッグ時はスナップをスキップ
-    if (deltaDx.abs() > snapSpeedThreshold) {
-      return ZoomUpdateResult(zoomLevel: newZoom);
-    }
-
     // スナップポイントのチェック
     for (final point in snapPoints) {
       if ((newZoom - point).abs() < snapThreshold) {
         if (_lastSnapValue != point) {
-          // スナップ発動：触覚フィードバック + 一時停止
-          HapticFeedback.lightImpact();
-          _snapPauseTime = DateTime.now().add(
-            Duration(milliseconds: snapPauseDurationMs),
-          );
+          // スナップ発動：触覚フィードバック
+          // 短時間に連続して振動させないためのガード（オプション、必要なら）
+          final now = DateTime.now();
+          if (_lastHapticTime == null ||
+              now.difference(_lastHapticTime!).inMilliseconds > 50) {
+            HapticFeedback.lightImpact();
+            _lastHapticTime = now;
+          }
           _lastSnapValue = point;
           return ZoomUpdateResult(zoomLevel: point, snapped: true);
         }
@@ -97,7 +86,7 @@ class ZoomController {
 
   /// スナップ状態をリセットする
   void reset() {
-    _snapPauseTime = null;
+    _lastHapticTime = null;
     _lastSnapValue = null;
   }
 }

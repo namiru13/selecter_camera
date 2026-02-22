@@ -28,7 +28,7 @@ class SensorData {
       }
     }
 
-    return minDiff < threshold && pitch.abs() < threshold;
+    return minDiff < threshold;
   }
 }
 

@@ -19,12 +19,6 @@ class AppConstants {
   /// スナップ判定の閾値（ズーム値の差がこの値以下ならスナップ）
   static const double zoomSnapThreshold = 0.2;
 
-  /// スナップをスキップするドラッグ速度の閾値
-  static const double zoomSnapSpeedThreshold = 3.0;
-
-  /// スナップ時の一時停止時間（ミリ秒）
-  static const int zoomSnapPauseDurationMs = 100;
-
   // === UI レイアウト ===
   /// 録画ボタンのサイズ
   static const double recordButtonSize = 64.0;

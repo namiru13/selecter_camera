@@ -66,7 +66,10 @@ class PersonListSideBar extends ConsumerWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     color: Colors.black54, // 黒色ベースの透過
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.1),
@@ -76,7 +79,10 @@ class PersonListSideBar extends ConsumerWidget {
                     ],
                   ),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
                     onTap: () {
                       ref
                           .read(cameraViewModelProvider.notifier)
@@ -84,7 +90,7 @@ class PersonListSideBar extends ConsumerWidget {
                     },
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: 8,
+                        vertical: 0,
                         horizontal: 12,
                       ),
                       child: Row(
@@ -95,16 +101,17 @@ class PersonListSideBar extends ConsumerWidget {
                             width: 36,
                             height: 64, // 36 * 16 / 9 = 64
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
+                              // このコンテナの角丸を0または非常に小さくして背景に馴染ませる
+                              borderRadius: BorderRadius.zero,
                               border: isSelected
                                   ? Border.all(
                                       color: Theme.of(context).primaryColor,
                                       width: 2,
                                     )
-                                  : Border.all(color: Colors.white24, width: 1),
+                                  : null, // 非選択時はボーダーなしで背景に馴染ませる
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(2),
+                              borderRadius: BorderRadius.zero,
                               child: person.thumbnailPath != null
                                   ? Image.file(
                                       File(person.thumbnailPath!),
@@ -124,6 +131,7 @@ class PersonListSideBar extends ConsumerWidget {
                           // 名前のテキスト部分は、RowのmainAxisSizeがminなので通常表示する
                           // ただし長すぎるとオーバーフローするため、Flexibleを使用する
                           Flexible(child: textWidget),
+                          const SizedBox(width: 20), // 右側の半円部分にスペースを空ける
                         ],
                       ),
                     ),

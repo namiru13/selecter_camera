@@ -10,8 +10,6 @@ void main() {
     controller = ZoomController(
       snapPoints: [2.0, 3.0, 6.0, 10.0],
       snapThreshold: 0.2,
-      snapSpeedThreshold: 3.0,
-      snapPauseDurationMs: 100,
     );
   });
 
@@ -89,27 +87,11 @@ void main() {
       });
     });
 
-    group('高速ドラッグ時のスナップスキップ', () {
-      test('速度が閾値を超えるとスナップしない', () {
-        // スナップポイント付近（2.0）に近い値でも、高速ドラッグならスナップしない
-        final result = controller.calculateZoom(
-          currentZoom: 2.05,
-          deltaDx: -5.0, // 閾値3.0を超える速度
-          barWidth: 200.0,
-          zoomRange: 9.0,
-        );
-
-        expect(result.zoomLevel, isNotNull);
-        expect(result.snapped, false);
-      });
-    });
-
     group('スナップポイントの動作', () {
       test('スナップポイント付近でスナップが発生する', () {
-        // ゆっくりドラッグ（速度 < 3.0）でスナップポイント付近に入る
         final result = controller.calculateZoom(
           currentZoom: 2.05,
-          deltaDx: -0.5, // ゆっくりドラッグ
+          deltaDx: -0.5,
           barWidth: 200.0,
           zoomRange: 9.0,
         );
@@ -119,10 +101,24 @@ void main() {
         expect(result.snapped, true);
       });
 
+      test('高速ドラッグ時でもスナップが発生する（機能削除の確認）', () {
+        // 現在の計算式: 2.05 - (-10.0 / 200.0) * 9.0 = 2.05 + 0.45 = 2.5
+        final result = controller.calculateZoom(
+          currentZoom: 2.05,
+          deltaDx: -10.0, // 高速ドラッグ
+          barWidth: 200.0,
+          zoomRange: 9.0,
+        );
+
+        // 2.5x付近にはスナップポイントがないため、そのままの計算結果が返るはず
+        expect(result.zoomLevel, closeTo(2.5, 0.01));
+        expect(result.snapped, false);
+      });
+
       test('スナップポイントから離れた位置では通常のズームが適用される', () {
         final result = controller.calculateZoom(
           currentZoom: 4.5,
-          deltaDx: -0.5, // ゆっくりドラッグ
+          deltaDx: -0.5,
           barWidth: 200.0,
           zoomRange: 9.0,
         );
@@ -140,9 +136,14 @@ void main() {
           zoomRange: 9.0,
         );
 
-        // 一時停止解除を待つためスナップ時間を過ぎたことにする
-        // ここではスナップ済みなので、同じポイントにはスナップしない
-        // (一時停止時間内は完全にスキップされる)
+        // 次の移動で、まだスナップ範囲内でも snapped は false になるはず
+        final result = controller.calculateZoom(
+          currentZoom: 2.0,
+          deltaDx: -0.1,
+          barWidth: 200.0,
+          zoomRange: 9.0,
+        );
+        expect(result.snapped, false);
       });
     });
 
