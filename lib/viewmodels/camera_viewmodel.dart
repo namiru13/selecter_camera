@@ -42,8 +42,8 @@ class CameraViewModel extends Notifier<CameraState> {
       // 保存された解像度設定を読み込む
       final resolution = await _settingsService.getResolutionPreset();
       final showGrid = await _settingsService.getShowGrid();
-      final showPersonSelectionConfirmation = await _settingsService
-          .getShowPersonSelectionOnStop();
+      final confirmPersonSelectionMode = await _settingsService
+          .getConfirmPersonSelectionMode();
 
       await _cameraService.initialize(resolutionPreset: resolution);
       if (_cameraService.controller != null) {
@@ -58,7 +58,7 @@ class CameraViewModel extends Notifier<CameraState> {
           currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
           resolutionPreset: resolution,
           showGrid: showGrid,
-          showPersonSelectionConfirmation: showPersonSelectionConfirmation,
+          confirmPersonSelectionMode: confirmPersonSelectionMode,
         );
 
         // 初期ズームを実機に反映
@@ -118,11 +118,12 @@ class CameraViewModel extends Notifier<CameraState> {
     await _settingsService.setShowGrid(newShow);
   }
 
-  /// 録画終了後の人物選択確認表示を切り替える
-  Future<void> toggleShowPersonSelectionConfirmation() async {
-    final newShow = !state.showPersonSelectionConfirmation;
-    state = state.copyWith(showPersonSelectionConfirmation: newShow);
-    await _settingsService.setShowPersonSelectionOnStop(newShow);
+  /// 録画終了後の人物確認表示モードを設定する
+  Future<void> setConfirmPersonSelectionMode(
+    ConfirmPersonSelectionMode mode,
+  ) async {
+    state = state.copyWith(confirmPersonSelectionMode: mode);
+    await _settingsService.setConfirmPersonSelectionMode(mode);
   }
 
   /// 解像度を変更する

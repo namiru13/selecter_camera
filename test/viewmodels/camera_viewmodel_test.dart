@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:selecter_camera/models/camera_state.dart';
 import 'package:selecter_camera/services/camera_service.dart';
 import 'package:selecter_camera/services/settings_service.dart';
 import 'package:selecter_camera/viewmodels/camera_viewmodel.dart';
@@ -28,10 +29,13 @@ class FakeSettingsService extends SettingsService {
   Future<void> setShowGrid(bool show) async {}
 
   @override
-  Future<bool> getShowPersonSelectionOnStop() async => true;
+  Future<ConfirmPersonSelectionMode> getConfirmPersonSelectionMode() async =>
+      ConfirmPersonSelectionMode.always;
 
   @override
-  Future<void> setShowPersonSelectionOnStop(bool show) async {}
+  Future<void> setConfirmPersonSelectionMode(
+    ConfirmPersonSelectionMode mode,
+  ) async {}
 }
 
 void main() {

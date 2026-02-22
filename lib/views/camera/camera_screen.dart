@@ -187,29 +187,48 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               if (isActive && !cameraState.isSaving)
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
+                  // オリエンテーションに応じて配置、幅、高さを物理的に確保する
                   top: orientation == NativeDeviceOrientation.landscapeLeft
-                      ? 16
-                      : (orientation == NativeDeviceOrientation.landscapeRight
-                            ? null
-                            : 100),
-                  bottom: orientation == NativeDeviceOrientation.landscapeRight
-                      ? 16
-                      : (orientation == NativeDeviceOrientation.landscapeLeft
-                            ? null
-                            : 160),
-                  left: orientation == NativeDeviceOrientation.landscapeLeft
-                      ? 100
-                      : (orientation == NativeDeviceOrientation.landscapeRight
-                            ? 160
-                            : 16),
-                  right: orientation == NativeDeviceOrientation.landscapeLeft
-                      ? 160
-                      : (orientation == NativeDeviceOrientation.landscapeRight
+                      ? 2
+                      : (orientation == NativeDeviceOrientation.portraitUp
                             ? 100
-                            : null),
-                  child: PersonListSideBar(
-                    orientation: orientation,
-                    rotationTurns: rotationTurns,
+                            : (orientation ==
+                                      NativeDeviceOrientation.portraitDown
+                                  ? 100
+                                  : null)),
+                  bottom: orientation == NativeDeviceOrientation.landscapeRight
+                      ? 2
+                      : (orientation == NativeDeviceOrientation.portraitUp
+                            ? 100
+                            : (orientation ==
+                                      NativeDeviceOrientation.portraitDown
+                                  ? 100
+                                  : null)),
+                  left:
+                      orientation == NativeDeviceOrientation.portraitUp ||
+                          orientation == NativeDeviceOrientation.portraitDown
+                      ? 2
+                      : (orientation == NativeDeviceOrientation.landscapeLeft
+                            ? 100
+                            : 48),
+                  right:
+                      orientation == NativeDeviceOrientation.portraitUp ||
+                          orientation == NativeDeviceOrientation.portraitDown
+                      ? null
+                      : (orientation == NativeDeviceOrientation.landscapeLeft
+                            ? 48
+                            : 100),
+                  child: RotatedBox(
+                    quarterTurns:
+                        orientation == NativeDeviceOrientation.landscapeLeft
+                        ? 1
+                        : (orientation == NativeDeviceOrientation.landscapeRight
+                              ? 3
+                              : (orientation ==
+                                        NativeDeviceOrientation.portraitDown
+                                    ? 2
+                                    : 0)),
+                    child: const PersonListSideBar(),
                   ),
                 ),
 
@@ -297,7 +316,10 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       onTapUp: (details) {
         _handleTapFocus(details, cameraState);
       },
-      child: Center(child: CameraPreview(cameraState.controller!)),
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: CameraPreview(cameraState.controller!),
+      ),
     );
   }
 
@@ -402,9 +424,23 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                   if (!mounted) return;
                   final currentState = ref.read(cameraViewModelProvider);
 
-                  // エラーがなく、設定がONの場合に確認ダイアログを表示
+                  // エラーがなく、設定に応じて確認ダイアログを表示
                   if (currentState.status != CameraStatus.error) {
-                    if (currentState.showPersonSelectionConfirmation) {
+                    bool shouldShowDialog = false;
+                    switch (currentState.confirmPersonSelectionMode) {
+                      case ConfirmPersonSelectionMode.always:
+                        shouldShowDialog = true;
+                        break;
+                      case ConfirmPersonSelectionMode.onlyWhenUnselected:
+                        shouldShowDialog =
+                            currentState.selectedPersonId == null;
+                        break;
+                      case ConfirmPersonSelectionMode.never:
+                        shouldShowDialog = false;
+                        break;
+                    }
+
+                    if (shouldShowDialog) {
                       _showPersonSelectionDialog(context);
                     } else {
                       // 確認なしの場合はすぐに保存処理へ移行

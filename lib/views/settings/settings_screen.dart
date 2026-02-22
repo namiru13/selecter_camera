@@ -52,16 +52,23 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const Divider(color: Colors.white24, height: 1),
           // 録画終了後の滑走者確認表示設定
-          SwitchListTile(
+          ListTile(
             title: const Text(
               '録画終了後に滑走者を確認する',
               style: TextStyle(color: Colors.white),
             ),
-            value: cameraState.showPersonSelectionConfirmation,
-            onChanged: (bool value) {
-              viewModel.toggleShowPersonSelectionConfirmation();
-            },
-            activeColor: Theme.of(context).primaryColor,
+            subtitle: Text(
+              SettingsService.confirmModeLabel(
+                cameraState.confirmPersonSelectionMode,
+              ),
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white54,
+              size: 16,
+            ),
+            onTap: () => _showConfirmModeDialog(context, ref, cameraState),
           ),
           const Divider(color: Colors.white24, height: 1),
         ],
@@ -115,6 +122,48 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 onTap: () {
                   viewModel.setResolutionPreset(preset);
+                  Navigator.of(dialogContext).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showConfirmModeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CameraState cameraState,
+  ) {
+    final viewModel = ref.read(cameraViewModelProvider.notifier);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('滑走者の確認設定', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ConfirmPersonSelectionMode.values.map((mode) {
+              final isSelected = mode == cameraState.confirmPersonSelectionMode;
+              return ListTile(
+                title: Text(
+                  SettingsService.confirmModeLabel(mode),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? Theme.of(dialogContext).primaryColor
+                      : Colors.white54,
+                ),
+                onTap: () {
+                  viewModel.setConfirmPersonSelectionMode(mode);
                   Navigator.of(dialogContext).pop();
                 },
               );

@@ -7,6 +7,13 @@ library;
 import 'package:camera/camera.dart';
 import 'package:flutter/painting.dart';
 
+/// 録画終了時の滑走者選択確認の動作モード
+enum ConfirmPersonSelectionMode {
+  always, // 常に確認する
+  onlyWhenUnselected, // 未選択時のみ確認する
+  never, // 確認しない
+}
+
 /// カメラのステータスを表すEnum
 enum CameraStatus { uninitialized, ready, recording, processing, error }
 
@@ -35,8 +42,8 @@ class CameraState {
   /// 現在の解像度プリセット
   final ResolutionPreset resolutionPreset;
 
-  /// 録画終了時に滑走者選択確認を表示するかどうか
-  final bool showPersonSelectionConfirmation;
+  /// 録画終了時に滑走者選択確認を表示するモード
+  final ConfirmPersonSelectionMode confirmPersonSelectionMode;
 
   /// 録画直後の未処理動画パス（保存処理前）
   final String? tempVideoPath;
@@ -57,7 +64,7 @@ class CameraState {
     this.recordingStartTime,
     this.selectedPersonId,
     this.resolutionPreset = ResolutionPreset.high,
-    this.showPersonSelectionConfirmation = true,
+    this.confirmPersonSelectionMode = ConfirmPersonSelectionMode.always,
     this.tempVideoPath,
     this.isSaving = false,
   });
@@ -78,7 +85,7 @@ class CameraState {
     String? selectedPersonId,
     bool? clearSelectedPersonId,
     ResolutionPreset? resolutionPreset,
-    bool? showPersonSelectionConfirmation,
+    ConfirmPersonSelectionMode? confirmPersonSelectionMode,
     String? tempVideoPath,
     bool? clearTempVideoPath,
     bool? isSaving,
@@ -102,9 +109,8 @@ class CameraState {
           ? null
           : (selectedPersonId ?? this.selectedPersonId),
       resolutionPreset: resolutionPreset ?? this.resolutionPreset,
-      showPersonSelectionConfirmation:
-          showPersonSelectionConfirmation ??
-          this.showPersonSelectionConfirmation,
+      confirmPersonSelectionMode:
+          confirmPersonSelectionMode ?? this.confirmPersonSelectionMode,
       tempVideoPath: clearTempVideoPath == true
           ? null
           : (tempVideoPath ?? this.tempVideoPath),

@@ -2,20 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:native_device_orientation/native_device_orientation.dart';
 import '../../../viewmodels/camera_viewmodel.dart';
 import '../../../viewmodels/person_viewmodel.dart';
 
 /// 画面左端に配置される人物一覧リスト
 class PersonListSideBar extends ConsumerWidget {
-  final NativeDeviceOrientation orientation;
-  final double rotationTurns;
-
-  const PersonListSideBar({
-    super.key,
-    this.orientation = NativeDeviceOrientation.portraitUp,
-    this.rotationTurns = 0.0,
-  });
+  const PersonListSideBar({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,98 +20,105 @@ class PersonListSideBar extends ConsumerWidget {
       data: (persons) {
         if (persons.isEmpty) return const SizedBox.shrink();
 
-        final isLandscape =
-            orientation == NativeDeviceOrientation.landscapeLeft ||
-            orientation == NativeDeviceOrientation.landscapeRight;
-
-        return Container(
-          width: isLandscape ? null : 80,
-          height: isLandscape ? 80 : null,
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.3), // 30%透過の白色
-            borderRadius: BorderRadius.circular(24), // 丸みを強くして通知バー風に
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+        // 画面の向きに合わせて並び方向を決定
+        // 要望により、横画面（landscape）でも画面左端の上から下に並べるため、常に縦方向にする
+        return ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 220, // 最大幅は制限するが、固定幅ではなくテキストに合わせる
+            maxHeight: MediaQuery.of(context).size.height * 0.8, // 画面高さを超えないように
           ),
-          child: ListView.builder(
-            scrollDirection: isLandscape ? Axis.horizontal : Axis.vertical,
-            padding: EdgeInsets.symmetric(
-              vertical: isLandscape ? 4 : 8,
-              horizontal: isLandscape ? 8 : 4,
-            ),
+          child: ListView.separated(
+            shrinkWrap: true, // コンテンツの高さに合わせてリストを縮小する
+            scrollDirection: Axis.vertical,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
             itemCount: persons.length,
+            separatorBuilder: (context, index) =>
+                const SizedBox(width: 0, height: 12),
             itemBuilder: (context, index) {
               final person = persons[index];
               final isSelected = selectedPersonId == person.id;
 
-              return InkWell(
-                onTap: () {
-                  ref
-                      .read(cameraViewModelProvider.notifier)
-                      .setSelectedPersonId(isSelected ? null : person.id);
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    vertical: isLandscape ? 4 : 8,
-                    horizontal: isLandscape ? 8 : 4,
+              Widget textWidget = Text(
+                person.name,
+                style: TextStyle(
+                  color: isSelected
+                      ? Theme.of(context).primaryColor
+                      : Colors.white,
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  shadows: const [
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 2,
+                      offset: Offset(1, 1),
+                    ),
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.left,
+              );
+
+              return Align(
+                alignment: Alignment.centerLeft, // 左寄せで、自身のサイズだけになるようにする
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black54, // 黒色ベースの透過
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: AnimatedRotation(
-                    turns: rotationTurns,
-                    duration: const Duration(milliseconds: 300),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          decoration: isSelected
-                              ? BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(context).primaryColor,
-                                    width: 3,
-                                  ),
-                                )
-                              : null,
-                          child: CircleAvatar(
-                            radius: 20,
-                            backgroundImage: person.thumbnailPath != null
-                                ? FileImage(File(person.thumbnailPath!))
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () {
+                      ref
+                          .read(cameraViewModelProvider.notifier)
+                          .setSelectedPersonId(isSelected ? null : person.id);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 12,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min, // コンテンツに合わせて最小幅にする
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            decoration: isSelected
+                                ? BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Theme.of(context).primaryColor,
+                                      width: 3,
+                                    ),
+                                  )
                                 : null,
-                            child: person.thumbnailPath == null
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundImage: person.thumbnailPath != null
+                                  ? FileImage(File(person.thumbnailPath!))
+                                  : null,
+                              child: person.thumbnailPath == null
+                                  ? const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 20,
+                                    )
+                                  : null,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          person.name,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Theme.of(context).primaryColor
-                                : Colors.white,
-                            fontSize: 12,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black54,
-                                blurRadius: 2,
-                                offset: Offset(1, 1),
-                              ),
-                            ],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          // 名前のテキスト部分は、RowのmainAxisSizeがminなので通常表示する
+                          // ただし長すぎるとオーバーフローするため、Flexibleを使用する
+                          Flexible(child: textWidget),
+                        ],
+                      ),
                     ),
                   ),
                 ),
