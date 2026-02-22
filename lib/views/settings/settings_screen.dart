@@ -51,6 +51,16 @@ class SettingsScreen extends ConsumerWidget {
             activeColor: Theme.of(context).primaryColor,
           ),
           const Divider(color: Colors.white24, height: 1),
+          // 水準器表示設定
+          SwitchListTile(
+            title: const Text('水準器表示', style: TextStyle(color: Colors.white)),
+            value: cameraState.showLeveler,
+            onChanged: (bool value) {
+              viewModel.toggleLeveler();
+            },
+            activeColor: Theme.of(context).primaryColor,
+          ),
+          const Divider(color: Colors.white24, height: 1),
           // 録画終了後の滑走者確認表示設定
           ListTile(
             title: const Text(
@@ -70,6 +80,76 @@ class SettingsScreen extends ConsumerWidget {
             ),
             onTap: () => _showConfirmModeDialog(context, ref, cameraState),
           ),
+          const Divider(color: Colors.white24, height: 1),
+          _buildSectionHeader('露出調整'),
+          // 露出モード設定
+          ListTile(
+            title: const Text('露出モード', style: TextStyle(color: Colors.white)),
+            subtitle: Text(
+              SettingsService.exposureAdjustmentModeLabel(
+                cameraState.exposureAdjustmentMode,
+              ),
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white54,
+              size: 16,
+            ),
+            onTap: () => _showExposureModeDialog(context, ref, cameraState),
+          ),
+          if (cameraState.exposureAdjustmentMode ==
+              ExposureAdjustmentMode.manual) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                '露出オフセット (EV)',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+            Slider(
+              value: cameraState.exposureOffset,
+              min: cameraState.minExposureOffset,
+              max: cameraState.maxExposureOffset,
+              divisions: cameraState.exposureOffsetStepSize > 0
+                  ? ((cameraState.maxExposureOffset -
+                                cameraState.minExposureOffset) /
+                            cameraState.exposureOffsetStepSize)
+                        .round()
+                  : null,
+              label: cameraState.exposureOffset.toStringAsFixed(1),
+              onChanged: (double value) {
+                viewModel.setExposureOffset(value);
+              },
+              activeColor: Theme.of(context).primaryColor,
+              inactiveColor: Colors.white24,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    cameraState.minExposureOffset.toStringAsFixed(1),
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                  Text(
+                    cameraState.exposureOffset.toStringAsFixed(1),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    cameraState.maxExposureOffset.toStringAsFixed(1),
+                    style: const TextStyle(color: Colors.white54, fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           const Divider(color: Colors.white24, height: 1),
         ],
       ),
@@ -122,6 +202,48 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 onTap: () {
                   viewModel.setResolutionPreset(preset);
+                  Navigator.of(dialogContext).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showExposureModeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CameraState cameraState,
+  ) {
+    final viewModel = ref.read(cameraViewModelProvider.notifier);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('露出調整モード', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ExposureAdjustmentMode.values.map((mode) {
+              final isSelected = mode == cameraState.exposureAdjustmentMode;
+              return ListTile(
+                title: Text(
+                  SettingsService.exposureAdjustmentModeLabel(mode),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? Theme.of(dialogContext).primaryColor
+                      : Colors.white54,
+                ),
+                onTap: () {
+                  viewModel.setExposureAdjustmentMode(mode);
                   Navigator.of(dialogContext).pop();
                 },
               );

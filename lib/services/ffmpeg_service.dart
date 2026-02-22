@@ -219,13 +219,14 @@ class FFmpegService {
   }) async {
     try {
       // 冒頭数秒間の映像（0秒〜thumbnailDuration秒）の上に、サムネイル画像を上書き描画する。
-      // - filter_complex で、入力画像[1:v]を元動画[0:v]のサイズにスケーリングし、元映像にoverlayする。
+      // - filter_complex で、入力画像[1:v]を元動画[0:v]のサイズの中でアスペクト比を維持してスケーリング（scale2ref + force_original_aspect_ratio）する。
+      // - その間、元動画の映像は drawbox フィルタで背景色（0xFF1A1A1A）に塗りつぶし、その中央にサムネイルを overlay させる。
       // - enable='between(t,0,thumbnailDuration)' で表示区間を制御。
       // - 音声はそのまま (-c:a copy) 用いる。
       // - 映像は再エンコードされるためスマートフォン向けに高速エンコードオプション（ultrafast）を適用。
 
       final command =
-          '-i "$sourceVideoPath" -i "$thumbnailImagePath" -filter_complex "[1:v][0:v]scale2ref=w=iw:h=ih[scaled_thumb][vid];[vid][scaled_thumb]overlay=x=0:y=0:enable=\'between(t,0,$thumbnailDuration)\'[out]" -map "[out]" -map 0:a? -c:v libx264 -preset ultrafast -crf 28 -c:a copy "$outputPath"';
+          '-i "$sourceVideoPath" -i "$thumbnailImagePath" -filter_complex "[1:v][0:v]scale2ref=w=iw:h=ih:force_original_aspect_ratio=decrease[scaled_thumb][vid];[vid]drawbox=x=0:y=0:w=iw:h=ih:color=0x1A1A1A@1.0:t=fill:enable=\'between(t,0,$thumbnailDuration)\'[bg];[bg][scaled_thumb]overlay=x=(W-w)/2:y=(H-h)/2:enable=\'between(t,0,$thumbnailDuration)\'[out]" -map "[out]" -map 0:a? -c:v libx264 -preset ultrafast -crf 28 -c:a copy "$outputPath"';
 
       debugPrint('FFmpeg サムネイル焼き付け(オーバーレイ)コマンド実行: $command');
       final session = await FFmpegKit.execute(command);

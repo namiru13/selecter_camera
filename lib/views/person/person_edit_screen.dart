@@ -506,17 +506,23 @@ class _PersonEditScreenState extends ConsumerState<PersonEditScreen> {
               toolbarTitle: '写真の切り取り',
               toolbarColor: Colors.black,
               toolbarWidgetColor: Colors.white,
-              initAspectRatio: CropAspectRatioPreset.original,
-              lockAspectRatio: false,
+              initAspectRatio: CropAspectRatioPreset
+                  .ratio16x9, // ImageCropperの16x9は縦横どちらでも使えるが、プリセットとして指定
+              lockAspectRatio: true,
               hideBottomControls: false,
             ),
             IOSUiSettings(
               title: '写真の切り取り',
               cancelButtonTitle: 'キャンセル',
               doneButtonTitle: '完了',
-              aspectRatioLockEnabled: false,
+              aspectRatioLockEnabled: true,
+              resetAspectRatioEnabled: false,
             ),
           ],
+          aspectRatio: const CropAspectRatio(
+            ratioX: 9,
+            ratioY: 16,
+          ), // ここで9:16を明示的に指定
         );
 
         // 切り取りがキャンセルされた場合は処理を中断

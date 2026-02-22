@@ -14,6 +14,13 @@ enum ConfirmPersonSelectionMode {
   never, // 確認しない
 }
 
+/// 露出調整の動作モード
+enum ExposureAdjustmentMode {
+  off, // OFF
+  manual, // 手動調整
+  auto, // 自動調整
+}
+
 /// カメラのステータスを表すEnum
 enum CameraStatus { uninitialized, ready, recording, processing, error }
 
@@ -33,6 +40,9 @@ class CameraState {
   /// グリッドライン表示フラグ
   final bool showGrid;
 
+  /// 水準器表示フラグ
+  final bool showLeveler;
+
   /// 録画開始時刻（録画中のみ非null）
   final DateTime? recordingStartTime;
 
@@ -51,6 +61,21 @@ class CameraState {
   /// 動画保存/処理中かどうか
   final bool isSaving;
 
+  /// 露出調整モード
+  final ExposureAdjustmentMode exposureAdjustmentMode;
+
+  /// 現在の露出オフセット値（EV）
+  final double exposureOffset;
+
+  /// 最小露出オフセット
+  final double minExposureOffset;
+
+  /// 最大露出オフセット
+  final double maxExposureOffset;
+
+  /// 露出オフセットのステップサイズ
+  final double exposureOffsetStepSize;
+
   CameraState({
     this.status = CameraStatus.uninitialized,
     this.controller,
@@ -61,12 +86,18 @@ class CameraState {
     this.currentZoomLevel = 1.0,
     this.focusPoint,
     this.showGrid = false,
+    this.showLeveler = false,
     this.recordingStartTime,
     this.selectedPersonId,
     this.resolutionPreset = ResolutionPreset.high,
     this.confirmPersonSelectionMode = ConfirmPersonSelectionMode.always,
     this.tempVideoPath,
     this.isSaving = false,
+    this.exposureAdjustmentMode = ExposureAdjustmentMode.off,
+    this.exposureOffset = 0.0,
+    this.minExposureOffset = 0.0,
+    this.maxExposureOffset = 0.0,
+    this.exposureOffsetStepSize = 1.0,
   });
 
   CameraState copyWith({
@@ -80,6 +111,7 @@ class CameraState {
     Offset? focusPoint,
     bool? clearFocusPoint,
     bool? showGrid,
+    bool? showLeveler,
     DateTime? recordingStartTime,
     bool? clearRecordingStartTime,
     String? selectedPersonId,
@@ -89,6 +121,11 @@ class CameraState {
     String? tempVideoPath,
     bool? clearTempVideoPath,
     bool? isSaving,
+    ExposureAdjustmentMode? exposureAdjustmentMode,
+    double? exposureOffset,
+    double? minExposureOffset,
+    double? maxExposureOffset,
+    double? exposureOffsetStepSize,
   }) {
     return CameraState(
       status: status ?? this.status,
@@ -102,6 +139,7 @@ class CameraState {
           ? null
           : (focusPoint ?? this.focusPoint),
       showGrid: showGrid ?? this.showGrid,
+      showLeveler: showLeveler ?? this.showLeveler,
       recordingStartTime: clearRecordingStartTime == true
           ? null
           : (recordingStartTime ?? this.recordingStartTime),
@@ -115,6 +153,13 @@ class CameraState {
           ? null
           : (tempVideoPath ?? this.tempVideoPath),
       isSaving: isSaving ?? this.isSaving,
+      exposureAdjustmentMode:
+          exposureAdjustmentMode ?? this.exposureAdjustmentMode,
+      exposureOffset: exposureOffset ?? this.exposureOffset,
+      minExposureOffset: minExposureOffset ?? this.minExposureOffset,
+      maxExposureOffset: maxExposureOffset ?? this.maxExposureOffset,
+      exposureOffsetStepSize:
+          exposureOffsetStepSize ?? this.exposureOffsetStepSize,
     );
   }
 }

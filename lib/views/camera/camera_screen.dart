@@ -20,6 +20,8 @@ import 'widgets/grid_overlay.dart';
 import 'widgets/recording_timer.dart';
 import 'widgets/video_preview_button.dart';
 import 'widgets/person_selector_popup.dart';
+import '../../services/sensor_service.dart';
+import 'widgets/leveler_overlay.dart';
 import '../person/person_list_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -34,6 +36,7 @@ class CameraScreen extends ConsumerStatefulWidget {
 class _CameraScreenState extends ConsumerState<CameraScreen>
     with WidgetsBindingObserver {
   final ZoomController _zoomController = ZoomController();
+  final SensorService _sensorService = SensorService();
 
   /// ピンチズーム用の基準ズーム値
   double _baseZoom = 1.0;
@@ -43,11 +46,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initialize();
+    _sensorService.start();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _sensorService.stop();
     super.dispose();
   }
 
@@ -138,6 +143,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               // フォーカスインジケータ
               if (isActive && cameraState.focusPoint != null)
                 _buildFocusIndicator(cameraState.focusPoint!),
+
+              // 水準器
+              if (isActive && !cameraState.isSaving && cameraState.showLeveler)
+                Positioned.fill(
+                  child: LevelerOverlay(sensorService: _sensorService),
+                ),
 
               // 録画タイマー
               if (isRecording && cameraState.recordingStartTime != null)

@@ -39,30 +39,66 @@ class CameraViewModel extends Notifier<CameraState> {
   /// カメラを初期化する
   Future<void> initializeCamera() async {
     try {
-      // 保存された解像度設定を読み込む
+      // 保存された設定を読み込む
       final resolution = await _settingsService.getResolutionPreset();
       final showGrid = await _settingsService.getShowGrid();
       final confirmPersonSelectionMode = await _settingsService
           .getConfirmPersonSelectionMode();
+      final exposureAdjustmentMode = await _settingsService
+          .getExposureAdjustmentMode();
+      final exposureOffset = await _settingsService.getExposureOffset();
+      final showLeveler = await _settingsService.getShowLeveler();
 
       await _cameraService.initialize(resolutionPreset: resolution);
-      if (_cameraService.controller != null) {
-        final minZoom = await _cameraService.controller!.getMinZoomLevel();
-        final maxZoom = await _cameraService.controller!.getMaxZoomLevel();
+      final controller = _cameraService.controller;
+      if (controller != null) {
+        final minZoom = await controller.getMinZoomLevel();
+        final maxZoom = await controller.getMaxZoomLevel();
+
+        // 露出設定の範囲とステップサイズを取得
+        final minExposure = await controller.getMinExposureOffset();
+        final maxExposure = await controller.getMaxExposureOffset();
+        final exposureStep = await controller.getExposureOffsetStepSize();
+
+        // 露出設定を適用
+        try {
+          switch (exposureAdjustmentMode) {
+            case ExposureAdjustmentMode.off:
+              await controller.setExposureOffset(0.0);
+              break;
+            case ExposureAdjustmentMode.manual:
+              await controller.setExposureOffset(
+                exposureOffset.clamp(minExposure, maxExposure),
+              );
+              break;
+            case ExposureAdjustmentMode.auto:
+              // 自動調整モード
+              await controller.setExposureMode(ExposureMode.auto);
+              break;
+          }
+        } catch (e) {
+          debugPrint('露出設定適用エラー: $e');
+        }
 
         state = state.copyWith(
           status: CameraStatus.ready,
-          controller: _cameraService.controller,
+          controller: controller,
           minZoomLevel: minZoom,
           maxZoomLevel: maxZoom,
           currentZoomLevel: 1.0.clamp(minZoom, maxZoom),
           resolutionPreset: resolution,
           showGrid: showGrid,
+          showLeveler: showLeveler,
           confirmPersonSelectionMode: confirmPersonSelectionMode,
+          exposureAdjustmentMode: exposureAdjustmentMode,
+          exposureOffset: exposureOffset,
+          minExposureOffset: minExposure,
+          maxExposureOffset: maxExposure,
+          exposureOffsetStepSize: exposureStep,
         );
 
         // 初期ズームを実機に反映
-        await _cameraService.controller!.setZoomLevel(state.currentZoomLevel);
+        await controller.setZoomLevel(state.currentZoomLevel);
       }
     } catch (e) {
       state = state.copyWith(
@@ -111,11 +147,66 @@ class CameraViewModel extends Notifier<CameraState> {
     }
   }
 
+  /// 露出モードを切り替える
+  Future<void> setExposureAdjustmentMode(ExposureAdjustmentMode mode) async {
+    if (state.controller == null) return;
+
+    try {
+      switch (mode) {
+        case ExposureAdjustmentMode.off:
+          await state.controller!.setExposureOffset(0.0);
+          state = state.copyWith(
+            exposureAdjustmentMode: mode,
+            exposureOffset: 0.0,
+          );
+          await _settingsService.setExposureOffset(0.0);
+          break;
+        case ExposureAdjustmentMode.manual:
+          // 手動モードへ。現在のオフセットを維持
+          await state.controller!.setExposureOffset(state.exposureOffset);
+          state = state.copyWith(exposureAdjustmentMode: mode);
+          break;
+        case ExposureAdjustmentMode.auto:
+          // 自動調整モードへ
+          await state.controller!.setExposureMode(ExposureMode.auto);
+          state = state.copyWith(exposureAdjustmentMode: mode);
+          break;
+      }
+      await _settingsService.setExposureAdjustmentMode(mode);
+    } catch (e) {
+      debugPrint('露出モード切り替えエラー: $e');
+    }
+  }
+
+  /// 露出オフセットを設定する
+  Future<void> setExposureOffset(double offset) async {
+    if (state.controller == null) return;
+
+    try {
+      final clampedOffset = offset.clamp(
+        state.minExposureOffset,
+        state.maxExposureOffset,
+      );
+      await state.controller!.setExposureOffset(clampedOffset);
+      state = state.copyWith(exposureOffset: clampedOffset);
+      await _settingsService.setExposureOffset(clampedOffset);
+    } catch (e) {
+      debugPrint('露出オフセット設定エラー: $e');
+    }
+  }
+
   /// グリッド表示を切り替える
   Future<void> toggleGrid() async {
     final newShow = !state.showGrid;
     state = state.copyWith(showGrid: newShow);
     await _settingsService.setShowGrid(newShow);
+  }
+
+  /// 水準器表示を切り替える
+  Future<void> toggleLeveler() async {
+    final newShow = !state.showLeveler;
+    state = state.copyWith(showLeveler: newShow);
+    await _settingsService.setShowLeveler(newShow);
   }
 
   /// 録画終了後の人物確認表示モードを設定する
