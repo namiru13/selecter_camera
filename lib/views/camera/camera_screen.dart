@@ -311,13 +311,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   /// カメラプレビューウィジェット（ズーム・フォーカスジェスチャー付き）
   Widget _buildCameraPreview(CameraState cameraState) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       // ピンチズームおよびスワイプズームの開始
       onScaleStart: (details) {
         _baseZoom = cameraState.currentZoomLevel;
 
         // タップ開始位置が画面の下部1/3（高さの2/3より下）にある場合のみ、スワイプズームを許可する
         final screenSize = MediaQuery.of(context).size;
-        if (details.localFocalPoint.dy > screenSize.height * (2 / 3)) {
+        // localFocalPointはGestureDetectorのサイズに依存するため、globalPositionを使用するか
+        // SizedBox.expand 等でGestureDetectorのサイズを画面全体にする必要がある。
+        // ここではグローバル座標 (focalPoint.dy) を使用して画面全体に対する位置で判定する。
+        if (details.focalPoint.dy > screenSize.height * (2 / 3)) {
           _canZoomDrag = true;
         } else {
           _canZoomDrag = false;
@@ -343,9 +347,14 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       onTapUp: (details) {
         _handleTapFocus(details, cameraState);
       },
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: CameraPreview(cameraState.controller!),
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.transparent, // ヒットテストを通過させるために透明指定
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: CameraPreview(cameraState.controller!),
+        ),
       ),
     );
   }

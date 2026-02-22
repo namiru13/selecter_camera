@@ -89,10 +89,7 @@ class PersonListSideBar extends ConsumerWidget {
                           .setSelectedPersonId(isSelected ? null : person.id);
                     },
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 0,
-                        horizontal: 12,
-                      ),
+                      padding: const EdgeInsets.only(right: 6),
                       child: Row(
                         mainAxisSize: MainAxisSize.min, // コンテンツに合わせて最小幅にする
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -131,7 +128,7 @@ class PersonListSideBar extends ConsumerWidget {
                           // 名前のテキスト部分は、RowのmainAxisSizeがminなので通常表示する
                           // ただし長すぎるとオーバーフローするため、Flexibleを使用する
                           Flexible(child: textWidget),
-                          const SizedBox(width: 20), // 右側の半円部分にスペースを空ける
+                          const SizedBox(width: 10), // 右側の半円部分にスペースを空ける
                         ],
                       ),
                     ),
