@@ -15,7 +15,20 @@ class SensorData {
   bool get isLevel {
     // ±2度以内を水平とみなす
     const threshold = 2.0 * math.pi / 180.0;
-    return roll.abs() < threshold && pitch.abs() < threshold;
+
+    // 目標角度 (0, 90, 180, -90, -180 度)
+    final targetAngles = [0.0, math.pi / 2, math.pi, -math.pi / 2, -math.pi];
+
+    // roll と各目標位置での理想角度との差の最小値を求める
+    double minDiff = double.infinity;
+    for (var angle in targetAngles) {
+      final diff = (roll - angle).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+      }
+    }
+
+    return minDiff < threshold && pitch.abs() < threshold;
   }
 }
 

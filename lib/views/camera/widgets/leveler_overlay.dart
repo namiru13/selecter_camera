@@ -52,7 +52,7 @@ class LevelerPainter extends CustomPainter {
       ..strokeWidth = strokeWidth;
 
     final outlinePaint = Paint()
-      ..color = Colors.black.withOpacity(0.5)
+      ..color = Colors.black.withAlpha(128)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth + (outlineWidth * 2);
 
@@ -127,14 +127,15 @@ class LevelerPainter extends CustomPainter {
     // 中心を基準に移動・回転
     canvas.translate(center.dx, center.dy);
 
+    // Roll に基づく回転
+    // デバイスの傾きと逆方向に回して水平を保つ
+    // 先に回転を行うことで、この後の上下移動が常に地球の重力方向に正しく行われる
+    canvas.rotate(-roll);
+
     // Pitch に基づく上下移動 (感度調整: 1ラジアンあたり100ピクセルなど)
     // 前後の傾きを上下のズレとして表現
     final double translateY = math.tan(pitch) * 200;
     canvas.translate(0, translateY);
-
-    // Roll に基づく回転
-    // デバイスの傾きと逆方向に回して水平を保つ
-    canvas.rotate(-roll);
 
     const levelWidth = 100.0;
 
