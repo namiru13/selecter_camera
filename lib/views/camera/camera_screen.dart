@@ -20,6 +20,8 @@ import 'widgets/grid_overlay.dart';
 import 'widgets/recording_timer.dart';
 import 'widgets/video_preview_button.dart';
 import 'widgets/person_selector_popup.dart';
+import '../../services/sensor_service.dart';
+import 'widgets/leveler_overlay.dart';
 import '../person/person_list_screen.dart';
 import '../settings/settings_screen.dart';
 
@@ -34,20 +36,26 @@ class CameraScreen extends ConsumerStatefulWidget {
 class _CameraScreenState extends ConsumerState<CameraScreen>
     with WidgetsBindingObserver {
   final ZoomController _zoomController = ZoomController();
+  final SensorService _sensorService = SensorService();
 
   /// ピンチズーム用の基準ズーム値
   double _baseZoom = 1.0;
+
+  /// スワイプズーム（1本指ドラッグ）が許可されているかどうかのフラグ
+  bool _canZoomDrag = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initialize();
+    _sensorService.start();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _sensorService.stop();
     super.dispose();
   }
 
@@ -138,6 +146,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
               // フォーカスインジケータ
               if (isActive && cameraState.focusPoint != null)
                 _buildFocusIndicator(cameraState.focusPoint!),
+
+              // 水準器
+              if (isActive && !cameraState.isSaving && cameraState.showLeveler)
+                Positioned.fill(
+                  child: LevelerOverlay(sensorService: _sensorService),
+                ),
 
               // 録画タイマー
               if (isRecording && cameraState.recordingStartTime != null)
@@ -292,17 +306,25 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   /// カメラプレビューウィジェット（ズーム・フォーカスジェスチャー付き）
   Widget _buildCameraPreview(CameraState cameraState) {
     return GestureDetector(
-      // ピンチズーム
+      // ピンチズームおよびスワイプズームの開始
       onScaleStart: (details) {
         _baseZoom = cameraState.currentZoomLevel;
+
+        // タップ開始位置が画面の下部1/3（高さの2/3より下）にある場合のみ、スワイプズームを許可する
+        final screenSize = MediaQuery.of(context).size;
+        if (details.localFocalPoint.dy > screenSize.height * (2 / 3)) {
+          _canZoomDrag = true;
+        } else {
+          _canZoomDrag = false;
+        }
       },
       onScaleUpdate: (details) {
         if (details.pointerCount >= 2) {
-          // ピンチズーム
+          // ピンチズーム（2本指以上は画面全体で許可）
           final newZoom = _baseZoom * details.scale;
           ref.read(cameraViewModelProvider.notifier).setZoomLevel(newZoom);
-        } else {
-          // 水平スワイプズーム（1本指）
+        } else if (_canZoomDrag) {
+          // 水平スワイプズーム（1本指ドラッグ）は許可されている場合のみ実行
           _handleZoomDrag(
             DragUpdateDetails(
               globalPosition: details.focalPoint,

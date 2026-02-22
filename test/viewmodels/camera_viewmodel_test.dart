@@ -36,6 +36,19 @@ class FakeSettingsService extends SettingsService {
   Future<void> setConfirmPersonSelectionMode(
     ConfirmPersonSelectionMode mode,
   ) async {}
+
+  @override
+  Future<ExposureAdjustmentMode> getExposureAdjustmentMode() async =>
+      ExposureAdjustmentMode.off;
+
+  @override
+  Future<void> setExposureAdjustmentMode(ExposureAdjustmentMode mode) async {}
+
+  @override
+  Future<double> getExposureOffset() async => 0.0;
+
+  @override
+  Future<void> setExposureOffset(double offset) async {}
 }
 
 void main() {
@@ -77,6 +90,20 @@ void main() {
     when(mockCameraController.getMinZoomLevel()).thenAnswer((_) async => 1.0);
     when(mockCameraController.getMaxZoomLevel()).thenAnswer((_) async => 8.0);
     when(mockCameraController.setZoomLevel(any)).thenAnswer((_) async {});
+
+    // 露出調整のモック
+    when(
+      mockCameraController.getMinExposureOffset(),
+    ).thenAnswer((_) async => -2.0);
+    when(
+      mockCameraController.getMaxExposureOffset(),
+    ).thenAnswer((_) async => 2.0);
+    when(
+      mockCameraController.getExposureOffsetStepSize(),
+    ).thenAnswer((_) async => 0.5);
+    when(
+      mockCameraController.setExposureOffset(any),
+    ).thenAnswer((_) async => 0.0);
 
     // CameraServiceがモックコントローラーを返すように設定
     when(mockCameraService.controller).thenReturn(mockCameraController);
@@ -164,5 +191,52 @@ void main() {
         verify(mockCameraController.setZoomLevel(0.5)).called(1);
       },
     );
+
+    test('setExposureAdjustmentMode updates state and controller', () async {
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      // 手動モードに変更
+      await viewModel.setExposureAdjustmentMode(ExposureAdjustmentMode.manual);
+      expect(
+        container.read(cameraViewModelProvider).exposureAdjustmentMode,
+        ExposureAdjustmentMode.manual,
+      );
+
+      // OFFに戻す（オフセットがリセットされること）
+      await viewModel.setExposureAdjustmentMode(ExposureAdjustmentMode.off);
+      expect(
+        container.read(cameraViewModelProvider).exposureAdjustmentMode,
+        ExposureAdjustmentMode.off,
+      );
+      expect(container.read(cameraViewModelProvider).exposureOffset, 0.0);
+      verify(
+        mockCameraController.setExposureOffset(0.0),
+      ).called(3); // 初期化時 + モード戻し時
+    });
+
+    test('setExposureOffset updates state and controller', () async {
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      await viewModel.setExposureOffset(1.5);
+      expect(container.read(cameraViewModelProvider).exposureOffset, 1.5);
+      verify(mockCameraController.setExposureOffset(1.5)).called(1);
+    });
+
+    test('setExposureOffset clamps value to min/max', () async {
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      // max (2.0) を超える値を設定
+      await viewModel.setExposureOffset(5.0);
+      expect(container.read(cameraViewModelProvider).exposureOffset, 2.0);
+      verify(mockCameraController.setExposureOffset(2.0)).called(1);
+
+      // min (-2.0) を下回る値を設定
+      await viewModel.setExposureOffset(-5.0);
+      expect(container.read(cameraViewModelProvider).exposureOffset, -2.0);
+      verify(mockCameraController.setExposureOffset(-2.0)).called(1);
+    });
   });
 }

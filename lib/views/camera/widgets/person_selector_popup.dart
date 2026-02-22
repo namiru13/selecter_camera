@@ -25,7 +25,9 @@ class PersonListSideBar extends ConsumerWidget {
         return ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: 220, // 最大幅は制限するが、固定幅ではなくテキストに合わせる
-            maxHeight: MediaQuery.of(context).size.height * 0.8, // 画面高さを超えないように
+            maxHeight:
+                MediaQuery.of(context).size.height *
+                (2 / 3), // 画面高さを超えないように（左上部2/3に制限）
           ),
           child: ListView.separated(
             shrinkWrap: true, // コンテンツの高さに合わせてリストを縮小する
@@ -90,27 +92,32 @@ class PersonListSideBar extends ConsumerWidget {
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Container(
-                            decoration: isSelected
-                                ? BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
+                            width: 36,
+                            height: 64, // 36 * 16 / 9 = 64
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(4),
+                              border: isSelected
+                                  ? Border.all(
                                       color: Theme.of(context).primaryColor,
-                                      width: 3,
-                                    ),
-                                  )
-                                : null,
-                            child: CircleAvatar(
-                              radius: 18,
-                              backgroundImage: person.thumbnailPath != null
-                                  ? FileImage(File(person.thumbnailPath!))
-                                  : null,
-                              child: person.thumbnailPath == null
-                                  ? const Icon(
-                                      Icons.person,
-                                      color: Colors.white,
-                                      size: 20,
+                                      width: 2,
                                     )
-                                  : null,
+                                  : Border.all(color: Colors.white24, width: 1),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: person.thumbnailPath != null
+                                  ? Image.file(
+                                      File(person.thumbnailPath!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      color: Colors.grey[800],
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -183,18 +190,29 @@ class SelectedPersonsTopRight extends ConsumerWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundImage: person.thumbnailPath != null
-                        ? FileImage(File(person.thumbnailPath!))
-                        : null,
-                    child: person.thumbnailPath == null
-                        ? const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 16,
-                          )
-                        : null,
+                  Container(
+                    width: 24,
+                    height: 42.6, // 24 * 16 / 9 = 42.6
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(color: Colors.white24, width: 1),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(1),
+                      child: person.thumbnailPath != null
+                          ? Image.file(
+                              File(person.thumbnailPath!),
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: Colors.grey[800],
+                              child: const Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Text(
