@@ -9,6 +9,7 @@ library;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import '../../core/constants/app_constants.dart';
@@ -174,7 +175,8 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                 _buildZoomGauge(cameraState, rotationTurns),
 
               // 録画ボタン
-              if (!cameraState.isSaving) _buildRecordButton(cameraState),
+              if (!cameraState.isSaving)
+                _buildRecordButton(cameraState, orientation),
 
               // プレビューボタン
               if (!cameraState.isSaving) _buildPreviewButton(cameraState),
@@ -424,8 +426,28 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     );
   }
 
+  DeviceOrientation _mapToDeviceOrientation(
+    NativeDeviceOrientation nativeOrientation,
+  ) {
+    switch (nativeOrientation) {
+      case NativeDeviceOrientation.portraitUp:
+        return DeviceOrientation.portraitUp;
+      case NativeDeviceOrientation.portraitDown:
+        return DeviceOrientation.portraitDown;
+      case NativeDeviceOrientation.landscapeLeft:
+        return DeviceOrientation.landscapeLeft;
+      case NativeDeviceOrientation.landscapeRight:
+        return DeviceOrientation.landscapeRight;
+      case NativeDeviceOrientation.unknown:
+        return DeviceOrientation.portraitUp;
+    }
+  }
+
   /// 録画ボタンウィジェット
-  Widget _buildRecordButton(CameraState cameraState) {
+  Widget _buildRecordButton(
+    CameraState cameraState,
+    NativeDeviceOrientation orientation,
+  ) {
     final isRecording = cameraState.status == CameraStatus.recording;
 
     return Align(
@@ -475,7 +497,12 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
                     }
                   }
                 } else {
-                  ref.read(cameraViewModelProvider.notifier).startRecording();
+                  final deviceOrientation = _mapToDeviceOrientation(
+                    orientation,
+                  );
+                  ref
+                      .read(cameraViewModelProvider.notifier)
+                      .startRecording(deviceOrientation);
                 }
               },
               child: Icon(

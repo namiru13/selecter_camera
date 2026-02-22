@@ -7,7 +7,7 @@ library;
 
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/camera_state.dart';
 import '../services/camera_service.dart';
@@ -246,13 +246,14 @@ class CameraViewModel extends Notifier<CameraState> {
   }
 
   /// 録画を開始する
-  Future<void> startRecording() async {
+  Future<void> startRecording(DeviceOrientation orientation) async {
     if (state.controller == null || !state.controller!.value.isInitialized) {
       return;
     }
     if (state.status == CameraStatus.recording) return;
 
     try {
+      await state.controller!.lockCaptureOrientation(orientation);
       await state.controller!.startVideoRecording();
       state = state.copyWith(
         status: CameraStatus.recording,
@@ -279,6 +280,7 @@ class CameraViewModel extends Notifier<CameraState> {
       }
 
       final file = await state.controller!.stopVideoRecording();
+      await state.controller!.unlockCaptureOrientation();
       debugPrint('動画録画完了 (一時保存): ${file.path}');
 
       state = state.copyWith(
