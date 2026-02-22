@@ -25,7 +25,9 @@ class PersonListSideBar extends ConsumerWidget {
         return ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: 220, // 最大幅は制限するが、固定幅ではなくテキストに合わせる
-            maxHeight: MediaQuery.of(context).size.height * 0.8, // 画面高さを超えないように
+            maxHeight:
+                MediaQuery.of(context).size.height *
+                (2 / 3), // 画面高さを超えないように（左上部2/3に制限）
           ),
           child: ListView.separated(
             shrinkWrap: true, // コンテンツの高さに合わせてリストを縮小する

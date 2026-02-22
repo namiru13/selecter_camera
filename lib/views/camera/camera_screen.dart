@@ -41,6 +41,9 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   /// ピンチズーム用の基準ズーム値
   double _baseZoom = 1.0;
 
+  /// スワイプズーム（1本指ドラッグ）が許可されているかどうかのフラグ
+  bool _canZoomDrag = false;
+
   @override
   void initState() {
     super.initState();
@@ -303,17 +306,25 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   /// カメラプレビューウィジェット（ズーム・フォーカスジェスチャー付き）
   Widget _buildCameraPreview(CameraState cameraState) {
     return GestureDetector(
-      // ピンチズーム
+      // ピンチズームおよびスワイプズームの開始
       onScaleStart: (details) {
         _baseZoom = cameraState.currentZoomLevel;
+
+        // タップ開始位置が画面の下部1/3（高さの2/3より下）にある場合のみ、スワイプズームを許可する
+        final screenSize = MediaQuery.of(context).size;
+        if (details.localFocalPoint.dy > screenSize.height * (2 / 3)) {
+          _canZoomDrag = true;
+        } else {
+          _canZoomDrag = false;
+        }
       },
       onScaleUpdate: (details) {
         if (details.pointerCount >= 2) {
-          // ピンチズーム
+          // ピンチズーム（2本指以上は画面全体で許可）
           final newZoom = _baseZoom * details.scale;
           ref.read(cameraViewModelProvider.notifier).setZoomLevel(newZoom);
-        } else {
-          // 水平スワイプズーム（1本指）
+        } else if (_canZoomDrag) {
+          // 水平スワイプズーム（1本指ドラッグ）は許可されている場合のみ実行
           _handleZoomDrag(
             DragUpdateDetails(
               globalPosition: details.focalPoint,
