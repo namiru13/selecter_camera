@@ -91,6 +91,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     final isRecording = cameraState.status == CameraStatus.recording;
 
     return NativeDeviceOrientationReader(
+      useSensor: true,
       builder: (context) {
         final orientation = NativeDeviceOrientationReader.orientation(context);
         double rotationTurns = 0.0;
