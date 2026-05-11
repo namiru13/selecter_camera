@@ -55,6 +55,13 @@ class SensorService {
 
   void stop() {
     _subscription?.cancel();
+    _subscription = null;
+  }
+
+  /// リソースを解放する
+  void dispose() {
+    stop();
+    sensorData.dispose();
   }
 
   void _updateValues(double x, double y, double z) {

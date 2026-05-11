@@ -7,7 +7,6 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:video_editor/video_editor.dart';
 import 'package:video_player/video_player.dart';
 import 'video_list_screen.dart';
 
@@ -21,7 +20,7 @@ class VideoPreviewScreen extends StatefulWidget {
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  late VideoEditorController _controller;
+  late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _isPlaying = false;
 
@@ -32,24 +31,22 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoEditorController.file(
-      widget.videoFile,
-      minDuration: const Duration(seconds: 1),
-      maxDuration: const Duration(seconds: 3600), // 長時間動画を許可
-    );
+    _controller = VideoPlayerController.file(widget.videoFile);
 
     _controller
         .initialize()
         .then((_) {
-          setState(() {
-            _isInitialized = true;
-            _isPlaying = true;
-          });
-          _controller.video.play();
-          _controller.video.setLooping(true);
+          if (mounted) {
+            setState(() {
+              _isInitialized = true;
+              _isPlaying = true;
+            });
+            _controller.play();
+            _controller.setLooping(true);
+          }
         })
         .catchError((error) {
-          debugPrint('Video initialization failed: $error');
+          debugPrint('動画の初期化に失敗しました: $error');
         });
   }
 
@@ -61,11 +58,11 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
 
   void _togglePlay() {
     setState(() {
-      if (_controller.video.value.isPlaying) {
-        _controller.video.pause();
+      if (_controller.value.isPlaying) {
+        _controller.pause();
         _isPlaying = false;
       } else {
-        _controller.video.play();
+        _controller.play();
         _isPlaying = true;
       }
     });
@@ -112,8 +109,8 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                 tag: widget.videoFile.path,
                 child: _isInitialized
                     ? AspectRatio(
-                        aspectRatio: _controller.video.value.aspectRatio,
-                        child: VideoPlayer(_controller.video),
+                        aspectRatio: _controller.value.aspectRatio,
+                        child: VideoPlayer(_controller),
                       )
                     : const CircularProgressIndicator(color: Colors.white),
               ),
@@ -206,7 +203,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                   ),
                   padding: const EdgeInsets.fromLTRB(16, 40, 16, 32),
                   child: ValueListenableBuilder(
-                    valueListenable: _controller.video,
+                    valueListenable: _controller,
                     builder: (context, VideoPlayerValue value, child) {
                       final duration = value.duration;
                       final position = _isDragging
@@ -261,7 +258,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                             : 0.0;
                                       });
                                       // ドラッグ中のスムーズスクラブ
-                                      _controller.video.seekTo(
+                                      _controller.seekTo(
                                         Duration(
                                           milliseconds: newValue.toInt(),
                                         ),
@@ -269,16 +266,16 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                     },
                                     onChangeStart: (newValue) {
                                       _wasPlayingBeforeDrag =
-                                          _controller.video.value.isPlaying;
+                                          _controller.value.isPlaying;
                                       if (_wasPlayingBeforeDrag) {
-                                        _controller.video.pause();
+                                        _controller.pause();
                                       }
                                       setState(() {
                                         _isDragging = true;
                                       });
                                     },
                                     onChangeEnd: (newValue) {
-                                      _controller.video.seekTo(
+                                      _controller.seekTo(
                                         Duration(
                                           milliseconds: newValue.toInt(),
                                         ),
@@ -287,7 +284,7 @@ class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
                                         _isDragging = false;
                                       });
                                       if (_wasPlayingBeforeDrag) {
-                                        _controller.video.play();
+                                        _controller.play();
                                       }
                                     },
                                   ),

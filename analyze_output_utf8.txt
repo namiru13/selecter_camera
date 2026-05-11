@@ -1,6 +1,0 @@
-﻿Analyzing selecter_camera...                                    
-
-   info - The import of 'package:flutter/material.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' - test\viewmodels\camera_viewmodel_test.dart:3:8 - unnecessary_import
-   info - Don't return 'null' from a function with a return type of 'void' - test\viewmodels\camera_viewmodel_test.dart:52:65 - avoid_returning_null_for_void
-   info - Don't return 'null' from a function with a return type of 'void' - test\viewmodels\camera_viewmodel_test.dart:56:57 - avoid_returning_null_for_void
-

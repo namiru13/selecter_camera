@@ -56,7 +56,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _sensorService.stop();
+    _sensorService.dispose();
     super.dispose();
   }
 
@@ -310,6 +310,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
 
   /// カメラプレビューウィジェット（ズーム・フォーカスジェスチャー付き）
   Widget _buildCameraPreview(CameraState cameraState) {
+    final controller = cameraState.controller;
+    if (controller == null || !controller.value.isInitialized) {
+      return const SizedBox.shrink();
+    }
+
+    // アプリはポートレート固定のため、常に縦長の縦横比を使用する
+    double aspectRatio = controller.value.aspectRatio;
+    if (aspectRatio > 1.0) {
+      aspectRatio = 1.0 / aspectRatio;
+    }
+
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       // ピンチズームおよびスワイプズームの開始
@@ -351,9 +362,17 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         width: double.infinity,
         height: double.infinity,
         color: Colors.transparent, // ヒットテストを通過させるために透明指定
-        child: Align(
-          alignment: Alignment.bottomCenter,
-          child: CameraPreview(cameraState.controller!),
+        child: ClipRect(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: 100,
+              height: 100 / aspectRatio,
+              // CameraPreviewを使用するとlockCaptureOrientation時にアスペクト比と回転が変わってズレるため、
+              // テクスチャ(buildPreview)を直接表示してポートレートに固定する
+              child: controller.buildPreview(),
+            ),
+          ),
         ),
       ),
     );

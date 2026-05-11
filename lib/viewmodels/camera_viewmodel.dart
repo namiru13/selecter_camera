@@ -20,16 +20,16 @@ import '../viewmodels/person_viewmodel.dart';
 class CameraViewModel extends Notifier<CameraState> {
   late final CameraService _cameraService;
   late final SettingsService _settingsService;
-  final VideoSaveService _videoSaveService = VideoSaveService();
+  late final VideoSaveService _videoSaveService;
 
   @override
   CameraState build() {
     _cameraService = ref.read(cameraServiceProvider);
     _settingsService = ref.read(settingsServiceProvider);
+    _videoSaveService = ref.read(videoSaveServiceProvider);
 
     // 破棄時のクリーンアップを登録
     ref.onDispose(() {
-      stopInferenceLoop();
       _cameraService.dispose();
     });
 
@@ -95,6 +95,8 @@ class CameraViewModel extends Notifier<CameraState> {
           minExposureOffset: minExposure,
           maxExposureOffset: maxExposure,
           exposureOffsetStepSize: exposureStep,
+          // 前回のエラーメッセージをクリアする
+          clearErrorMessage: true,
         );
 
         // 初期ズームを実機に反映
@@ -110,7 +112,6 @@ class CameraViewModel extends Notifier<CameraState> {
 
   /// カメラリソースを解放する（ライフサイクル管理用）
   Future<void> disposeCamera() async {
-    await stopInferenceLoop();
     await _cameraService.dispose();
     state = CameraState();
   }
@@ -376,41 +377,6 @@ class CameraViewModel extends Notifier<CameraState> {
         clearTempVideoPath: true,
       );
     }
-  }
-
-  // === 推論ループ ===
-  bool _isProcessing = false;
-  int _frameCount = 0;
-
-  /// 推論ループを開始する
-  void startInferenceLoop() {
-    if (state.controller == null || !state.controller!.value.isInitialized) {
-      return;
-    }
-
-    state.controller!.startImageStream((CameraImage image) {
-      if (_isProcessing) return;
-
-      _frameCount++;
-      if (_frameCount % 10 != 0) return;
-
-      _isProcessing = true;
-      _runInference(image).whenComplete(() {
-        _isProcessing = false;
-      });
-    });
-  }
-
-  Future<void> stopInferenceLoop() async {
-    final controller = _cameraService.controller;
-    if (controller != null && controller.value.isStreamingImages) {
-      await controller.stopImageStream();
-    }
-  }
-
-  /// 推論を実行する（TODO: MLServiceと接続）
-  Future<void> _runInference(CameraImage image) async {
-    // TODO: MLServiceと接続
   }
 }
 

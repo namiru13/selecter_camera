@@ -104,6 +104,7 @@ class CameraState {
     CameraStatus? status,
     CameraController? controller,
     String? errorMessage,
+    bool? clearErrorMessage,
     String? lastVideoPath,
     double? minZoomLevel,
     double? maxZoomLevel,
@@ -130,7 +131,9 @@ class CameraState {
     return CameraState(
       status: status ?? this.status,
       controller: controller ?? this.controller,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: clearErrorMessage == true
+          ? null
+          : (errorMessage ?? this.errorMessage),
       lastVideoPath: lastVideoPath ?? this.lastVideoPath,
       minZoomLevel: minZoomLevel ?? this.minZoomLevel,
       maxZoomLevel: maxZoomLevel ?? this.maxZoomLevel,

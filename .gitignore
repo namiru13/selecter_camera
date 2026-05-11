@@ -46,6 +46,20 @@ app.*.map.json
 
 # 一時分析・ログファイル
 analysis*.txt
-analyze_result.*
+analyze*.txt
+build_log*.txt
 android_logs.txt
-build_log_*.txt
+
+# テスト出力ファイル
+test_output*
+test_results*
+test_machine.json
+
+# 設計・仕様ドキュメント（公開対象外）
+設計.md
+
+# Android signing config
+/android/key.properties
+**/*.jks
+**/*.keystore
+
