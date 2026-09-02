@@ -151,6 +151,62 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
           ],
           const Divider(color: Colors.white24, height: 1),
+          _buildSectionHeader('滑走者判定機能'),
+          // 滑走者判定機能ON/OFF
+          ListTile(
+            title: const Text('自動判定', style: TextStyle(color: Colors.white)),
+            subtitle: Text(
+              cameraState.skierDetectionEnabled ? 'ON' : 'OFF',
+              style: const TextStyle(color: Colors.white70),
+            ),
+            trailing: const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white54,
+              size: 16,
+            ),
+            onTap: () => _showSkierDetectionModeDialog(context, ref, cameraState),
+          ),
+          if (cameraState.skierDetectionEnabled) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Text(
+                '判定結果の提案人数',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+            Slider(
+              value: cameraState.skierDetectionProposedCount.toDouble(),
+              min: 1,
+              max: 5,
+              divisions: 4,
+              label: cameraState.skierDetectionProposedCount.toString(),
+              onChanged: (double value) {
+                viewModel.setSkierDetectionProposedCount(value.round());
+              },
+              activeColor: Theme.of(context).primaryColor,
+              inactiveColor: Colors.white24,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('1', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  Text(
+                    cameraState.skierDetectionProposedCount.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Text('5', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          const Divider(color: Colors.white24, height: 1),
         ],
       ),
     );
@@ -286,6 +342,52 @@ class SettingsScreen extends ConsumerWidget {
                 ),
                 onTap: () {
                   viewModel.setConfirmPersonSelectionMode(mode);
+                  Navigator.of(dialogContext).pop();
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showSkierDetectionModeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    CameraState cameraState,
+  ) {
+    final viewModel = ref.read(cameraViewModelProvider.notifier);
+    final options = [
+      {'label': 'ON', 'value': true},
+      {'label': 'OFF', 'value': false},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: const Text('自動判定', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: options.map((option) {
+              final isSelected = option['value'] == cameraState.skierDetectionEnabled;
+              return ListTile(
+                title: Text(
+                  option['label'] as String,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? Theme.of(dialogContext).primaryColor
+                      : Colors.white54,
+                ),
+                onTap: () {
+                  viewModel.setSkierDetectionEnabled(option['value'] as bool);
                   Navigator.of(dialogContext).pop();
                 },
               );

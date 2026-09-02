@@ -76,6 +76,12 @@ class CameraState {
   /// 露出オフセットのステップサイズ
   final double exposureOffsetStepSize;
 
+  /// 滑走者判定機能の有効/無効
+  final bool skierDetectionEnabled;
+
+  /// 滑走者判定結果の提案人数
+  final int skierDetectionProposedCount;
+
   CameraState({
     this.status = CameraStatus.uninitialized,
     this.controller,
@@ -98,6 +104,8 @@ class CameraState {
     this.minExposureOffset = 0.0,
     this.maxExposureOffset = 0.0,
     this.exposureOffsetStepSize = 1.0,
+    this.skierDetectionEnabled = true,
+    this.skierDetectionProposedCount = 3,
   });
 
   CameraState copyWith({
@@ -127,6 +135,8 @@ class CameraState {
     double? minExposureOffset,
     double? maxExposureOffset,
     double? exposureOffsetStepSize,
+    bool? skierDetectionEnabled,
+    int? skierDetectionProposedCount,
   }) {
     return CameraState(
       status: status ?? this.status,
@@ -163,6 +173,10 @@ class CameraState {
       maxExposureOffset: maxExposureOffset ?? this.maxExposureOffset,
       exposureOffsetStepSize:
           exposureOffsetStepSize ?? this.exposureOffsetStepSize,
+      skierDetectionEnabled:
+          skierDetectionEnabled ?? this.skierDetectionEnabled,
+      skierDetectionProposedCount:
+          skierDetectionProposedCount ?? this.skierDetectionProposedCount,
     );
   }
 }

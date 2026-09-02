@@ -24,6 +24,8 @@ class SettingsService {
       'confirm_person_selection_mode';
   static const String _keyExposureAdjustmentMode = 'exposure_adjustment_mode';
   static const String _keyExposureOffset = 'exposure_offset';
+  static const String _keySkierDetectionEnabled = 'skier_detection_enabled';
+  static const String _keySkierDetectionProposedCount = 'skier_detection_proposed_count';
 
   /// 保存された解像度設定を取得する
   Future<ResolutionPreset> getResolutionPreset() async {
@@ -134,6 +136,30 @@ class SettingsService {
   Future<void> setExposureOffset(double offset) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_keyExposureOffset, offset);
+  }
+
+  /// 滑走者判定機能の有効状態を取得する
+  Future<bool> getSkierDetectionEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keySkierDetectionEnabled) ?? true;
+  }
+
+  /// 滑走者判定機能の有効状態を保存する
+  Future<void> setSkierDetectionEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySkierDetectionEnabled, enabled);
+  }
+
+  /// 滑走者判定結果の提案人数を取得する
+  Future<int> getSkierDetectionProposedCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_keySkierDetectionProposedCount) ?? 3;
+  }
+
+  /// 滑走者判定結果の提案人数を保存する
+  Future<void> setSkierDetectionProposedCount(int count) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keySkierDetectionProposedCount, count);
   }
 
   /// 解像度プリセットの表示名を返す
