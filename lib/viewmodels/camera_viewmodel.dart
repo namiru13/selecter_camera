@@ -48,6 +48,8 @@ class CameraViewModel extends Notifier<CameraState> {
           .getExposureAdjustmentMode();
       final exposureOffset = await _settingsService.getExposureOffset();
       final showLeveler = await _settingsService.getShowLeveler();
+      final skierDetectionEnabled = await _settingsService.getSkierDetectionEnabled();
+      final skierDetectionProposedCount = await _settingsService.getSkierDetectionProposedCount();
 
       await _cameraService.initialize(resolutionPreset: resolution);
       final controller = _cameraService.controller;
@@ -95,6 +97,8 @@ class CameraViewModel extends Notifier<CameraState> {
           minExposureOffset: minExposure,
           maxExposureOffset: maxExposure,
           exposureOffsetStepSize: exposureStep,
+          skierDetectionEnabled: skierDetectionEnabled,
+          skierDetectionProposedCount: skierDetectionProposedCount,
           // 前回のエラーメッセージをクリアする
           clearErrorMessage: true,
         );
@@ -218,6 +222,18 @@ class CameraViewModel extends Notifier<CameraState> {
     await _settingsService.setConfirmPersonSelectionMode(mode);
   }
 
+  /// 滑走者判定機能の有効/無効を設定する
+  Future<void> setSkierDetectionEnabled(bool enabled) async {
+    state = state.copyWith(skierDetectionEnabled: enabled);
+    await _settingsService.setSkierDetectionEnabled(enabled);
+  }
+
+  /// 滑走者判定結果の提案人数を設定する
+  Future<void> setSkierDetectionProposedCount(int count) async {
+    state = state.copyWith(skierDetectionProposedCount: count);
+    await _settingsService.setSkierDetectionProposedCount(count);
+  }
+
   /// 解像度を変更する
   ///
   /// カメラの再初期化が必要なため、現在の録画状態を考慮する。
@@ -275,6 +291,15 @@ class CameraViewModel extends Notifier<CameraState> {
     }
 
     try {
+            // AI推論モックを実行して人物を自動判定
+      final personsAsync = ref.read(personViewModelProvider);
+      final persons = personsAsync.value ?? [];
+      final predictedPersonId = await _aiInferenceService.predictTargetPerson(persons);
+      
+      if (predictedPersonId != null) {
+        // AIが判定した人物をセット
+        state = state.copyWith(selectedPersonId: predictedPersonId);
+      }
       // イメージストリームが動作中の場合は先に停止する（競合防止）
       if (state.controller!.value.isStreamingImages) {
         await state.controller!.stopImageStream();
