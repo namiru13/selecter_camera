@@ -49,6 +49,18 @@ class FakeSettingsService extends SettingsService {
 
   @override
   Future<void> setExposureOffset(double offset) async {}
+
+  @override
+  Future<bool> getSkierDetectionEnabled() async => true;
+
+  @override
+  Future<void> setSkierDetectionEnabled(bool enabled) async {}
+
+  @override
+  Future<int> getSkierDetectionProposedCount() async => 3;
+
+  @override
+  Future<void> setSkierDetectionProposedCount(int count) async {}
 }
 
 void main() {
@@ -237,6 +249,34 @@ void main() {
       await viewModel.setExposureOffset(-5.0);
       expect(container.read(cameraViewModelProvider).exposureOffset, -2.0);
       verify(mockCameraController.setExposureOffset(-2.0)).called(1);
+    });
+
+    test('setSkierDetectionEnabled updates state', () async {
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      await viewModel.setSkierDetectionEnabled(false);
+      expect(
+        container.read(cameraViewModelProvider).skierDetectionEnabled,
+        isFalse,
+      );
+
+      await viewModel.setSkierDetectionEnabled(true);
+      expect(
+        container.read(cameraViewModelProvider).skierDetectionEnabled,
+        isTrue,
+      );
+    });
+
+    test('setSkierDetectionProposedCount updates state', () async {
+      final viewModel = container.read(cameraViewModelProvider.notifier);
+      await viewModel.initializeCamera();
+
+      await viewModel.setSkierDetectionProposedCount(5);
+      expect(
+        container.read(cameraViewModelProvider).skierDetectionProposedCount,
+        5,
+      );
     });
   });
 }

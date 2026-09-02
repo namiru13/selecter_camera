@@ -1,4 +1,4 @@
-package com.example.selecter_camera
+package namiru13.selectercamera
 
 import io.flutter.embedding.android.FlutterActivity
 

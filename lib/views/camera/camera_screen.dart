@@ -60,27 +60,26 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     super.dispose();
   }
 
-  /// アプリのライフサイクル変更を処理する
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final viewModel = ref.read(cameraViewModelProvider.notifier);
     final cameraState = ref.read(cameraViewModelProvider);
 
-    // カメラが初期化されていない場合は何もしない
-    if (cameraState.status == CameraStatus.uninitialized ||
-        cameraState.status == CameraStatus.error) {
-      return;
-    }
-
     switch (state) {
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
-        // カメラリソースを解放
-        viewModel.disposeCamera();
+        // カメラが未初期化やエラー状態でなければリソースを解放する
+        if (cameraState.status != CameraStatus.uninitialized &&
+            cameraState.status != CameraStatus.error) {
+          viewModel.disposeCamera();
+        }
         break;
       case AppLifecycleState.resumed:
-        // カメラを再初期化
-        viewModel.initializeCamera();
+        // 復帰時、カメラが未初期化またはエラー状態であれば再初期化する
+        if (cameraState.status == CameraStatus.uninitialized ||
+            cameraState.status == CameraStatus.error) {
+          viewModel.initializeCamera();
+        }
         break;
       default:
         break;

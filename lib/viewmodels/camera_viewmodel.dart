@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/camera_state.dart';
+import '../services/ai_inference_service.dart';
 import '../services/camera_service.dart';
 import '../services/settings_service.dart';
 import '../services/video_save_service.dart';
@@ -21,12 +22,14 @@ class CameraViewModel extends Notifier<CameraState> {
   late final CameraService _cameraService;
   late final SettingsService _settingsService;
   late final VideoSaveService _videoSaveService;
+  late final AiInferenceService _aiInferenceService;
 
   @override
   CameraState build() {
     _cameraService = ref.read(cameraServiceProvider);
     _settingsService = ref.read(settingsServiceProvider);
     _videoSaveService = ref.read(videoSaveServiceProvider);
+    _aiInferenceService = ref.read(aiInferenceServiceProvider);
 
     // 破棄時のクリーンアップを登録
     ref.onDispose(() {
@@ -291,14 +294,17 @@ class CameraViewModel extends Notifier<CameraState> {
     }
 
     try {
-            // AI推論モックを実行して人物を自動判定
-      final personsAsync = ref.read(personViewModelProvider);
-      final persons = personsAsync.value ?? [];
-      final predictedPersonId = await _aiInferenceService.predictTargetPerson(persons);
-      
-      if (predictedPersonId != null) {
-        // AIが判定した人物をセット
-        state = state.copyWith(selectedPersonId: predictedPersonId);
+      // AI推論モックを実行して人物を自動判定（機能が有効な場合）
+      if (state.skierDetectionEnabled) {
+        final personsAsync = ref.read(personViewModelProvider);
+        final persons = personsAsync.value ?? [];
+        final predictedPersonId =
+            await _aiInferenceService.predictTargetPerson(persons);
+
+        if (predictedPersonId != null) {
+          // AIが判定した人物をセット
+          state = state.copyWith(selectedPersonId: predictedPersonId);
+        }
       }
       // イメージストリームが動作中の場合は先に停止する（競合防止）
       if (state.controller!.value.isStreamingImages) {
